@@ -1,0 +1,20 @@
+#+TITLE: snort简介
+#+AUTHOR: sqlfocus
+
+
+本系列文档摘录snort源码，了解大名鼎鼎的IDS/IPS引擎，以期熟悉丰富的
+快速规则匹配引擎，并借此丰富安全领域常识。
+
+
+* 参考
+ - 手册：~/doc/snort_manual.pdf
+ - ~/doc
+ - 书籍：Snort入侵检测系统源码分析--独孤九贱.pdf
+
+
+
+
+
+
+
+

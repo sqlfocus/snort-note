@@ -1,0 +1,35 @@
+l2016-11-07 - Snort 2.9.9.0
+[*] New additions
+ 
+ *  New rule option for byte_math. See the Snort manual for details.
+
+ *  Added bitmask and from_end operations to byte_test. See the Snort manual for details.
+
+ *  Added a Buffer Dump utility to trace all of the buffers used by snort during inspection.
+    Enable this by --enable-buffer-dump option to configure prior to building. See the Snort manual for details.
+
+ *  Added new HTTP preprocessor alerts to detect multiple content encoding and multiple content length.
+
+ *  Added support for SMTP Traffic detection over SSL (SMTPS).
+
+[*] Improvements
+ *  Fixed an issue which reduces extra service discovery to improve performance.
+
+ *  Fixed multiple issues in AppID.
+      - Reconstructed the call to port-service detection.
+      - Fixed issue where AppId for Facebook over SPDY/HTTP 1.1 was incorrect.
+      - Preventing third-party application identification for expected connections.
+
+ *  Stability improvement for Stream preprocessor. 
+      - Addressed incorrect flushing of packets whose size is greater than MAXIMUM_PAF_MAX.
+      - Fixed an issue where incorrect length argument in memcpy caused out of bound memory access.
+
+ *  Fixed multiple issues in HttpInspect preprocessor.
+      - Handling chunk encoding followed by \r\r\r\n and \n\n\n\r\r\n.
+      - Fixed an issue with LZMA flash decompression.
+
+ *  Fixed mime data processing issue in SMTP stateless inspection.
+
+ *  Added support to decode packets that contains VLAN with Secure Group Tag (SGT).
+ 
+ *  Fixed Issue related to DLL-Load in Snort on windows platforms for CVE-2016-1417. 
