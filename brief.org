@@ -5,6 +5,14 @@
 本系列文档摘录snort源码，了解大名鼎鼎的IDS/IPS引擎，以期熟悉丰富的
 快速规则匹配引擎，并借此丰富安全领域常识。
 
+* 代码导读
+ #+BEGIN_EXAMPLE
+ -main()                               ~/src/snort.c
+   -SnortInit()
+   -PacketLoop()
+     -PacketCallback()
+     -SnortIdle()
+ #+END_EXAMPLE
 
 * 参考
  - 手册：~/doc/snort_manual.pdf

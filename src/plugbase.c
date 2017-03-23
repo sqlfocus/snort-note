@@ -172,12 +172,13 @@ static const char *optTypeMap[OPT_TYPE_MAX] =
 
 static GetHttpXffFieldsFunc getHttpXffFieldsFunc = NULL;
 
+/* 注册规则选项处理插件 */
 void RegisterRuleOptions(void)
 {
     LogMessage("Initializing Plug-ins!\n");
 
-    SetupPatternMatch();
-    SetupTCPFlagCheck();
+    SetupPatternMatch();    /* content/uricontent/http_uri/... */
+    SetupTCPFlagCheck();    /* flags */
     SetupIcmpTypeCheck();
     SetupIcmpCodeCheck();
     SetupTtlCheck();
@@ -686,23 +687,23 @@ void RegisterBufferTracer(TraceBuffer *(*bdfunc)(), BUFFER_DUMP_FUNC type)
 static void AddFuncToPreprocSignalList(PreprocSignalFunc, void *,
                                        PreprocSignalFuncNode **, uint16_t, uint32_t);
 
-
+/* 注册规则前置处理插件 */
 void RegisterPreprocessors(void)
 {
     LogMessage("Initializing Preprocessors!\n");
 
-    SetupARPspoof();
+    SetupARPspoof();                 /* 关键字：arpspoof/arpspoof_detect_host */
 #ifdef NORMALIZER
-    SetupNormalizer();
+    SetupNormalizer();               /* normalize_ip4/_icmp4/_ip6/_icmp6/tcp */
 #endif
-    SetupFrag3();
-    SetupSessionManager();
-    SetupStream6();
-    SetupRpcDecode();
-    SetupBo();
-    SetupHttpInspect();
-    SetupPerfMonitor();
-    SetupSfPortscan();
+    SetupFrag3();                    /* frag3_global/_engine */
+    SetupSessionManager();           /* stream5_global/stream5_ha */
+    SetupStream6();                  /* stream5_tcp/_udp/icmp/_ip */
+    SetupRpcDecode();                /* rpc_decode */
+    SetupBo();                       /* bo */
+    SetupHttpInspect();              /* http_inspect/http_inspect_server */
+    SetupPerfMonitor();              /* PerfMonitor */
+    SetupSfPortscan();               /* sfportscan */
 }
 
 /****************************************************************************
@@ -1577,37 +1578,38 @@ extern OutputConfigFuncNode *output_config_funcs;
 
 static void AppendOutputFuncList(OutputFunc, void *, OutputFuncNode **);
 
+/* 注册各种类型的输出插件 */
 void RegisterOutputPlugins(void)
 {
     LogMessage("Initializing Output Plugins!\n");
 
-    AlertSyslogSetup();
-    LogTcpdumpSetup();
-    AlertFastSetup();
-    AlertFullSetup();
+    AlertSyslogSetup();       /* 关键字：alert_syslog */
+    LogTcpdumpSetup();        /* log_tcpdump */
+    AlertFastSetup();         /* alert_fast */
+    AlertFullSetup();         /* alert_full */
 #ifndef WIN32
     /* Win32 doesn't support AF_UNIX sockets */
-    AlertUnixSockSetup();
+    AlertUnixSockSetup();     /* alert_unixsock */
 #endif /* !WIN32 */
-    AlertCSVSetup();
-    LogNullSetup();
-    Unified2Setup();
-    LogAsciiSetup();
+    AlertCSVSetup();          /* alert_CSV */
+    LogNullSetup();           /* log_null */
+    Unified2Setup();          /* log_unified2/alert_unified2/unified2 */
+    LogAsciiSetup();          /* log_ascii */
 
 #ifdef DUMP_BUFFER
-    LogBufferDumpSetup();
+    LogBufferDumpSetup();     /* log_buffer_dump */
 #endif
 
 #ifdef LINUX
     /* This uses linux only capabilities */
-    AlertSFSocket_Setup();
+    AlertSFSocket_Setup();    /* alert_sf_socket/alert_sf_socket_sid */
 #endif
 
-    AlertTestSetup();
+    AlertTestSetup();         /* alert_test */
 }
 
 /****************************************************************************
- *
+ * 注册输出控制插件，待初始化
  * Function: RegisterOutputPlugin(char *, void (*func)(Packet *, u_char *))
  *
  * Purpose:  Associates an output statement with its function.

@@ -392,16 +392,16 @@ typedef struct _DynamicLibInfo
 
 } DynamicLibInfo;
 
-
+/* snort运行模式 */
 typedef enum _RunMode
 {
-    /* -V */
+    /* 仅显示版本号，-V */
     RUN_MODE__VERSION = 1,
 
-    /* --dump-dynamic-rules */
+    /* ，--dump-dynamic-rules */
     RUN_MODE__RULE_DUMP,
 
-    /* neither of the above and snort.conf presence (-c or implicit) */
+    /* IDS模式，neither of the above and snort.conf presence (-c or implicit) */
     RUN_MODE__IDS,
 
     /* snort.conf presence and -T */
@@ -677,7 +677,7 @@ struct _IntelPmHandles;
 struct _MandatoryEarlySessionCreator;
 typedef struct _SnortConfig
 {
-    RunMode run_mode;
+    RunMode run_mode;            /* 运行模式 */
     int run_mode_flags;
     int run_flags;
     int output_flags;

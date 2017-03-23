@@ -277,7 +277,7 @@ void ts_print(register const struct timeval *tvp, char *timebuf)
 
 
 /****************************************************************************
- *
+ * 返回当地和UTC时区的时差，单位秒
  * Function: gmt2local(time_t)
  *
  * Purpose: Figures out how to adjust the current clock reading based on the

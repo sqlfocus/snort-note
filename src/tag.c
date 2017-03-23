@@ -73,13 +73,12 @@ typedef struct _tagSessionKey
 } tTagSessionKey;
 
 /**Node identifying a session or host based tagging.
- */
+ *//* 标识主机的tag节点 */
 typedef struct _TagNode
 {
-    /**key identifying a session or host. */
+    /** 五元组(少协议)，key identifying a session or host. */
     tTagSessionKey key;
-
-    /** transport proto */
+    /** 协议，transport proto */
     uint8_t proto;
 
     /** number of packets/seconds/bytes to tag for */
@@ -109,10 +108,10 @@ typedef struct _TagNode
 } TagNode;
 
 /*  G L O B A L S  **************************************************/
-/**host tag cache */
+/**以IP标识的主机hash表，host tag cache */
 static SFXHASH *host_tag_cache_ptr;
 
-/**session tag cache */
+/**以流标识的主机hash表，session tag cache */
 static SFXHASH *ssn_tag_cache_ptr;
 
 static uint32_t last_prune_time;
@@ -329,10 +328,11 @@ static inline void SwapTag(TagNode *np)
     np->key.dp = tport;
 }
 
+/* 初始化标识主机的Tag节点hash表 */
 void InitTag(void)
 {
     unsigned int hashTableSize = TAG_MEMCAP/sizeof(TagNode);
-
+    /* 流标签hash表 */
     ssn_tag_cache_ptr = sfxhash_new(
                 hashTableSize,              /* number of hash buckets */
                 sizeof(tTagSessionKey),     /* size of the key we're going to use */
@@ -342,7 +342,7 @@ void InitTag(void)
                 NULL,                       /* anr free function */
                 TagFreeSessionNodeFunc,     /* user free function */
                 0);                         /* recycle node flag */
-
+    /* ip标签hash表 */
     host_tag_cache_ptr = sfxhash_new(
                 hashTableSize,       /* number of hash buckets */
                 sizeof(struct in6_addr), /* size of the key we're going to use */

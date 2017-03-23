@@ -101,7 +101,7 @@ static void AlertSyslogCleanExit(int, void *);
  *
  * Returns: void function
  *
- */
+ *//* 注册警告类型的输出插件 */
 void AlertSyslogSetup(void)
 {
     /* link the preprocessor keyword to the init function in
@@ -121,7 +121,7 @@ void AlertSyslogSetup(void)
  *
  * Returns: void function
  *
- */
+ *//* 输出插件的初始化入口 */
 static void AlertSyslogInit(struct _SnortConfig *sc, char *args)
 {
     SyslogData *data;

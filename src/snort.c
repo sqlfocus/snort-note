@@ -237,14 +237,14 @@ extern ListHead *head_tmp;
 
 
 /* Globals/Public *************************************************************/
-PacketCount pc;  /* packet count information */
-uint32_t *netmasks = NULL;   /* precalculated netmask array */
-char **protocol_names = NULL;
-char *snort_conf_file = NULL;   /* -c */
-char *snort_conf_dir = NULL;
+PacketCount pc;               /* 报文统计信息，packet count information */
+uint32_t *netmasks = NULL;    /* 网络掩码数组，precalculated netmask array */
+char **protocol_names = NULL; /* 以IP协议号为索引的协议名数组 */
+char *snort_conf_file = NULL; /* 命令行参数-c指定的配置文件 */
+char *snort_conf_dir = NULL;  /* */
 
 SnortConfig *snort_cmd_line_conf = NULL;
-SnortConfig *snort_conf = NULL;
+SnortConfig *snort_conf = NULL;             /* snort的配置信息 */
 
 #if defined(SNORT_RELOAD) && !defined(WIN32)
 SnortConfig *snort_conf_new = NULL;
@@ -294,7 +294,7 @@ extern void pcap_lex_destroy(void);
 #endif
 
 PreprocConfigFuncNode *preproc_config_funcs = NULL;
-OutputConfigFuncNode *output_config_funcs = NULL;
+OutputConfigFuncNode *output_config_funcs = NULL;             /* 输出插件，管控各级别及各种输出行为 */
 RuleOptConfigFuncNode *rule_opt_config_funcs = NULL;
 RuleOptOverrideInitFuncNode *rule_opt_override_init_funcs = NULL;
 RuleOptParseCleanupNode *rule_opt_parse_cleanup_list = NULL;
@@ -821,7 +821,7 @@ static int InlineFailOpen (void)
  *
  * Returns: 0 => normal exit, 1 => exit on error
  *
- */
+ *//* snort程序主入口函数 */
 int main(int argc, char *argv[])
 {
 #if defined(WIN32) && defined(ENABLE_WIN32_SERVICE)
@@ -873,13 +873,13 @@ int SnortMain(int argc, char *argv[])
     // and again after daemonization
     snort_main_thread_id = pthread_self();
 #endif
-
+    /* 初始化入口，包括注册插件、解析规则等 */
     SnortInit(argc, argv);
 
 #if 0
     sleep(10);
 #endif
-
+    /* 获取网络接口卡名 */
     intf = GetPacketSource(&tmp_ptr);
     daqInit = intf || snort_conf->daq_type;
 
@@ -892,6 +892,7 @@ int SnortMain(int argc, char *argv[])
     if ( tmp_ptr )
         free(tmp_ptr);
 
+    /* 精灵化 */
     if ( ScDaemonMode() )
     {
         GoDaemon();
@@ -963,6 +964,7 @@ int SnortMain(int argc, char *argv[])
         }
     }
 
+    /* 主处理循环 */
     PacketLoop();
 
     // DAQ is shutdown in CleanExit() since we don't always return here
@@ -978,7 +980,7 @@ int SnortMain(int argc, char *argv[])
 static void SnortStartThreads(void)
 {
 
-    ControlSocketInit();
+    ControlSocketInit();             /* 启动管理线程 */
 
 #ifdef SIDE_CHANNEL
     SideChannelStartTXThread();
@@ -1356,6 +1358,7 @@ static char* GetFirstInterface (void)
     return iface;
 }
 
+/* 读取网络接口卡名 */
 static const char* GetPacketSource (char** sptr)
 {
     const char* intf = "other";
@@ -1692,6 +1695,7 @@ static Packet s_packet;
 static DAQ_PktHdr_t s_pkth;
 static uint8_t s_data[65536];
 
+/* 报文处理入口 */
 static DAQ_Verdict PacketCallback(
     void* user, const DAQ_PktHdr_t* pkthdr, const uint8_t* pkt)
 {
@@ -3325,6 +3329,7 @@ static void SnortIdle(void)
     IdleProcessingExecute();
 }
 
+/* SNORT的报文处理循环入口 */
 void PacketLoop (void)
 {
     int error = 0;
@@ -3337,6 +3342,7 @@ void PacketLoop (void)
 
     while ( !exit_logged )
     {
+        /* 报文处理，PacketCallback() */
         error = DAQ_Acquire(pkts_to_read, PacketCallback, NULL);
 
 #ifdef CONTROL_SOCKET
@@ -3405,6 +3411,7 @@ void PacketLoop (void)
         // TBD fix this per above ... and if it stays here, should
         // prolly change the name if acquire breaks due to a signal
         // (since in that case we aren't idle here)
+        /* IDLE任务 */
         SnortIdle();
 
 #ifdef SIDE_CHANNEL
@@ -3588,7 +3595,7 @@ static void SigPipeHandler(int signal)
 #ifdef TARGET_BASED
 static void SigNoAttributeTableHandler(int signal)
 {
-   no_attr_table_signal = true;
+上SnortInit   no_attr_table_signal = true;
 }
 #endif
 
@@ -4173,10 +4180,10 @@ int SignalCheck(void)
 
 static void InitGlobals(void)
 {
-    memset(&pc, 0, sizeof(pc));
+    memset(&pc, 0, sizeof(pc));   /* 初始化报文统计结构 */
 
-    InitNetmasks();
-    InitProtoNames();
+    InitNetmasks();               /* 预加载所有的网络掩码 */
+    InitProtoNames();             /* 预加载支持的IP协议名 */
 #ifdef SIDE_CHANNEL
     pthread_mutex_init(&snort_process_lock, NULL);
 #endif
@@ -5018,16 +5025,16 @@ void FreeVarList(VarNode *head)
         free(tmp);
     }
 }
-
+/* 初始化入口 */
 void SnortInit(int argc, char **argv)
 {
 #ifdef WIN32
     char dllSearchPath[PATH_MAX];
 #endif
-    InitSignals();
+    InitSignals();                     /* 初始化信号句柄 */
 
 #if defined(NOCOREFILE) && !defined(WIN32)
-    SetNoCores();
+    SetNoCores();                      /* 不生成coredump文件 */
 #else
     StoreSnortInfoStrings();
 #endif
@@ -5045,10 +5052,9 @@ void SnortInit(int argc, char **argv)
         FatalError("Could not Initialize Winsock!\n");
 #endif
 
-    InitGlobals();
+    InitGlobals();                     /* 初始化全局变量，如网络掩码、协议名等 */
 
-    /* chew up the command line */
-    ParseCmdLine(argc, argv);
+    ParseCmdLine(argc, argv);          /* 命令行参数解析 */
 
     switch (snort_conf->run_mode)
     {
@@ -5078,7 +5084,7 @@ void SnortInit(int argc, char **argv)
         default:
             break;
     }
-
+                                       /* 关闭日志 */
     if (ScSuppressConfigLog() || ScVersionMode())
         ScSetInternalLogLevel(INTERNAL_LOG_LEVEL__ERROR);
 
@@ -5090,7 +5096,7 @@ void SnortInit(int argc, char **argv)
         ErrorMessage("%s", signal_error_msg);
     }
 
-    if (!ScVersionMode())
+    if (!ScVersionMode())              /* 注册输出插件 */
     {
         /* Every run mode except version will potentially need output
          * If output plugins should become dynamic, this needs to move */
@@ -5100,17 +5106,17 @@ void SnortInit(int argc, char **argv)
 #endif
     }
 
-    init_fileAPI();
+    init_fileAPI();                    /**/
 
     /* if we're using the rules system, it gets initialized here */
-    if (snort_conf_file != NULL)
-    {
+    if (snort_conf_file != NULL)       /* 命令行参数-c指定了配置文件；解析 */
+    {                                  /* 也即指定了规则系统 */
         SnortConfig *sc;
 
         /* initialize all the plugin modules */
-        RegisterPreprocessors();
-        RegisterRuleOptions();
-        InitTag();
+        RegisterPreprocessors();       /* 注册规则前置处理插件 */
+        RegisterRuleOptions();         /* 注册规则选项处理插件 */
+        InitTag();                     /* 初始化主机信息hash表 */
 
 #ifdef DEBUG
         DumpPreprocessors();
@@ -5135,16 +5141,16 @@ void SnortInit(int argc, char **argv)
 #endif
 
         LogMessage("Parsing Rules file \"%s\"\n", snort_conf_file);
-        sc = ParseSnortConf();
+        sc = ParseSnortConf();         /* 解析配置文件 */
 
         /* Merge the command line and config file confs to take care of
          * command line overriding config file.
          * Set the global snort_conf that will be used during run time */
         snort_conf = MergeSnortConfs(snort_cmd_line_conf, sc);
-
+                                       /**/
         InitSynToMulticastDstIp(snort_conf);
         InitMulticastReservedIp(snort_conf);
-
+                                       /**/
 #ifdef TARGET_BASED
         /* Parse attribute table stuff here since config max_attribute_hosts
          * is apart from attribute table configuration.
@@ -5242,11 +5248,11 @@ void SnortInit(int argc, char **argv)
     if (snort_conf->bpf_filter != NULL)
         LogMessage("Snort BPF option: %s\n", snort_conf->bpf_filter);
 
-    LoadDynamicPlugins(snort_conf);
+    LoadDynamicPlugins(snort_conf);    /**/
 
     /* Display snort version information here so that we can also show dynamic
      * plugin versions, if loaded.  */
-    if (ScVersionMode())
+    if (ScVersionMode())               /* 打印版本信息，然后退出 */
     {
         ScRestoreInternalLogLevel();
         PrintVersion();
@@ -5263,21 +5269,21 @@ void SnortInit(int argc, char **argv)
         LogMessage("Log directory = %s\n", snort_conf->log_dir);
     }
 
-    if (ScOutputUseUtc())
+    if (ScOutputUseUtc())              /* 计算时差 */
         snort_conf->thiszone = 0;
     else
         snort_conf->thiszone = gmt2local(0);  /* ripped from tcpdump */
 
-    ConfigureOutputPlugins(snort_conf);
+    ConfigureOutputPlugins(snort_conf);/* 初始化输出插件 */
 
     /* Have to split up configuring preprocessors between internal and dynamic
      * because the dpd structure has a pointer to the stream api and stream5
      * needs to be configured first to set this */
     ConfigurePreprocessors(snort_conf, 0);
-
+                                       /* 初始化规则前预处理插件 */
     InitDynamicEngines(snort_conf->dynamic_rules_path);
 
-    if (ScRuleDumpMode())
+    if (ScRuleDumpMode())              /* 打印规则然后退出 */
     {
         if( snort_conf->dynamic_rules_path == NULL )
         {
@@ -5297,7 +5303,7 @@ void SnortInit(int argc, char **argv)
      * should be filled in and have the correct values */
     ConfigurePreprocessors(snort_conf, 1);
 
-    ParseRules(snort_conf);
+    ParseRules(snort_conf);            /* 解析规则 */
     RuleOptParseCleanup();
 
     InitDynamicDetectionPlugins(snort_conf);
@@ -5480,7 +5486,7 @@ static void SetNoCores(void)
     struct rlimit rlim;
 
     getrlimit(RLIMIT_CORE, &rlim);
-    rlim.rlim_max = 0;
+    rlim.rlim_max = 0;                  /* 大小设置为0,等同于不产生core文件 */
     setrlimit(RLIMIT_CORE, &rlim);
 }
 #endif
