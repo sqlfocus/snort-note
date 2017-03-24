@@ -123,7 +123,7 @@ typedef struct {
 }PORT_GROUP;
 
 
-
+/* 快速规则匹配引擎：按照端口的分类结构，以加速规则匹配 */
 typedef struct {
 
   int        prmNumDstRules;
@@ -141,14 +141,14 @@ typedef struct {
   int        prmNumNoServiceSrcGroups;
 #endif
 
-  PORT_GROUP *prmDstPort[MAX_PORTS];
-  PORT_GROUP *prmSrcPort[MAX_PORTS];
+  PORT_GROUP *prmDstPort[MAX_PORTS];    /* 源端口子集合 */
+  PORT_GROUP *prmSrcPort[MAX_PORTS];    /* 目的端口子集合 */
   /* char       prmConflicts[MAX_PORTS]; */
 #ifdef TARGET_BASED
   PORT_GROUP *prmNoServiceDstPort[MAX_PORTS];
   PORT_GROUP *prmNoServiceSrcPort[MAX_PORTS];
 #endif
-  PORT_GROUP *prmGeneric;
+  PORT_GROUP *prmGeneric;               /* 通用子集合 */
 
 } PORT_RULE_MAP ;
 

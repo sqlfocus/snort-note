@@ -866,9 +866,9 @@ typedef struct _SnortConfig
     SF_LIST **ip_proto_only_lists;
     uint8_t ip_proto_array[NUM_IP_PROTOS];
 
-    /* 规则类型列表 */
+    /* 规则类型列表，按照动作分类；三层链表结构 */
     int num_rule_types;          /* rule_lists[]数组大小 */
-    RuleListNode *rule_lists;    /* 规则类型列表 */
+    RuleListNode *rule_lists;    /* 首层链表，规则类型列表 */
     int evalOrder[RULE_TYPE__MAX + 1];  /* 值为注册顺序 */
 
     /* 规则列表 */
@@ -910,6 +910,7 @@ typedef struct _SnortConfig
      * rules, or any combination. We process the uricontent 1st,
      * then the content, and then the no content rules for udp/tcp
      * and icmp, than we process the ip rules. */
+    /* 快速规则引擎：以源、目的端口聚类 */
     PORT_RULE_MAP *prmIpRTNX;
     PORT_RULE_MAP *prmTcpRTNX;
     PORT_RULE_MAP *prmUdpRTNX;

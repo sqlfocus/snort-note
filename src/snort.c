@@ -1729,6 +1729,7 @@ static DAQ_Verdict PacketCallback(
 #endif
     }
 
+    /* 数据包累计计数 */
     pc.total_from_daq++;
 
     /* Increment counter that we're evaling rules for caching results */
@@ -1741,7 +1742,7 @@ static DAQ_Verdict PacketCallback(
 
     CheckForReload();
 
-    /* Save off the time of each and every packet */
+    /* 处理包的嗅探时间，Save off the time of each and every packet */
     packet_time_update(&pkthdr->ts);
 
 #ifdef REG_TEST
@@ -5372,6 +5373,7 @@ void SnortInit(int argc, char **argv)
                 __FILE__, __LINE__);
     }
 
+    /* 构建快速匹配检测引擎 */
     fpCreateFastPacketDetection(snort_conf);
 
 #ifdef INTEL_SOFT_CPM

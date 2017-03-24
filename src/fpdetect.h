@@ -86,12 +86,12 @@ typedef struct {
 */
 typedef struct
 {
-    PORT_GROUP * pg;
-    Packet * p;
-    int check_ports;
+    PORT_GROUP * pg;           /* 规则快速匹配引擎的规则子集合 */
+    Packet * p;                /* 待检测数据包 */
+    int check_ports;           /* 是否需要检测端口？如icmp不需要 */
 
-    MATCH_INFO *matchInfo;
-    int iMatchInfoArraySize;
+    MATCH_INFO *matchInfo;     /* 匹配事件的相关信息 */
+    int iMatchInfoArraySize;   /* 规则类型大小 */
 } OTNX_MATCH_DATA;
 
 OTNX_MATCH_DATA * OtnXMatchDataNew(int);

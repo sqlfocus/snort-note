@@ -143,18 +143,18 @@ struct _RuleListNode;
 /* 规则节点 */
 typedef struct _ListHead
 {
-    struct _OutputFuncNode *LogList;
-    struct _OutputFuncNode *AlertList;
+    struct _OutputFuncNode *LogList;     /* 输出插件（日志）*/
+    struct _OutputFuncNode *AlertList;   /* 输出插件（报警）*/
     struct _RuleListNode *ruleListNode;  /* 指向规则类型节点 */
 } ListHead; 
 
-/* 规则类型 */
+/* 三层结构的首层；规则类型 */
 typedef struct _RuleListNode
 {
-    ListHead *RuleList;         /* 规则列表，The rule list associated with this node */
-    RuleType mode;              /* the rule mode */
-    int rval;                   /* 0 == no detection, 1 == detection event */
-    int evalIndex;              /* eval index for this rule set */
+    ListHead *RuleList;         /* 规则列表，二层结构；The rule list associated with this node */
+    RuleType mode;              /* 规则模式，the rule mode */
+    int rval;                   /* 0/1标识不检测/检测事件；0 == no detection, 1 == detection event */
+    int evalIndex;              /* 规则类型的索引，由注册顺序决定；eval index for this rule set */
     char *name;                 /* 类型名，name of this rule list (for debugging)  */
     struct _RuleListNode *next; /* the next RuleListNode */
 } RuleListNode;

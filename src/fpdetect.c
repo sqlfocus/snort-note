@@ -1510,15 +1510,17 @@ static inline int fpEvalHeaderTcp(Packet *p, OTNX_MATCH_DATA *omd)
         prmFindNoServiceRuleGroup(snort_conf->prmTcpRTNX, p->dp, p->sp, &nssrc, &nsdst, &gen);
     }
 #else
+    /* 查找当前数据包对应的匹配子集，源端口\目的端口\通用子集 */
     if (!prmFindRuleGroupTcp(snort_conf->prmTcpRTNX, p->dp, p->sp, &src, &dst, &gen))
         return 0;
 #endif
 
+    /* 初始化匹配结果信息 */
     InitMatchInfo(omd);
 
-    if ( dst )
+    if ( dst )    /* 目的端口子集 */
         fpEvalHeaderSW(dst, p, 1, 0, omd);
-    if ( src )
+    if ( src )    /* 源端口子集 */
         fpEvalHeaderSW(src, p, 1, 0, omd);
 #ifdef TARGET_BASED
     if ( nsdst )
@@ -1526,9 +1528,10 @@ static inline int fpEvalHeaderTcp(Packet *p, OTNX_MATCH_DATA *omd)
     if ( nssrc )
         fpEvalHeaderSW(nssrc, p, 1, 0, omd);
 #endif
-    if ( gen )
+    if ( gen )    /* 通用端口子集 */
         fpEvalHeaderSW(gen, p, 1, 0, omd);
 
+    /* 选择匹配到的事件 */
     return fpFinalSelectEvent(omd, p);
 }
 
