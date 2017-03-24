@@ -77,7 +77,7 @@ typedef char ** (*MSplitFunc)(const char *str, const char *sep_chars, const int 
 typedef void (*MSplitFreeFunc)(char ***pbuf, int num_toks);
 
 /* Info Data passed to dynamic output plugin
- */
+ *//* 动态加载插件库的输出信息 */
 typedef struct _DynamicOutputData
 {
     int majorVersion;

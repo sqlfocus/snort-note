@@ -65,16 +65,14 @@ typedef SFGHASH  PortVarTable;
  * port, lowport:highport, portlist
  */
 typedef struct _PortObjectItem_s {
+    int type;           /* 端口类型，ANY, RANGE, PORT */
+    int flags;          /* NOT */
     
-    int type;       /*  ANY, RANGE, PORT */
-    int flags;       /* NOT */
-    
-    uint16_t hport;   /* hi port */
-    uint16_t lport;   /* lo port */
+    uint16_t hport;     /* hi port */
+    uint16_t lport;     /* lo port */
 
-    uint16_t cur_port; /* internal - first/next */
+    uint16_t cur_port;  /* internal - first/next */
     uint16_t tmp;
-
 }PortObjectItem;
 
 
@@ -93,6 +91,7 @@ typedef struct { /* not used yet */
     SF_LIST        * item_list; /* list of port and port-range items */
 }PortList_x;
 
+/* 端口对象 */
 typedef struct { 
 	char           * name;      /* user name - always use strdup or malloc for this*/
 	int              id;        /* internal tracking - compiling sets this value */
@@ -113,9 +112,8 @@ typedef struct  {
     void           (*data_free)(void *);
 }PortObject2;
 
-/*
-    Port Table
-*/
+/* 端口表
+ * Port Table */
 typedef struct _PortTable_s {
 
     /* turns on group optimization, better speed-but more memory 
@@ -162,6 +160,7 @@ typedef struct _PortTable_s {
 
 }PortTable;
 
+/* 端口管理结构 */
 typedef struct {
 
     PortTable * tcp_src, * tcp_dst;

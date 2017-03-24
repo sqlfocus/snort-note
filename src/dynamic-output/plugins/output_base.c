@@ -89,7 +89,7 @@ typedef struct _output_list_node
     struct _output_list_node *next;
 } Output_ListNode_t;
 
-static Output_ListNode_t *module_list = NULL;
+static Output_ListNode_t *module_list = NULL;   /* 动态加载的模块儿链表 */
 static int num_modules = 0;
 static int loaded = 0;
 
@@ -186,7 +186,7 @@ static int register_module(const Output_Module_t *dm, void *dl_handle)
 
     /* If so, and this version is newer, use it instead.  Otherwise, create a new node. */
     if (node)
-    {
+    {   /* 新版本模块儿替换老版本 */
         if (node->module->module_version >= dm->module_version)
         {
             DEBUG_WRAP(DebugMessage(DEBUG_INIT, "OUTPUT module with name '%s' was already loaded"
@@ -202,6 +202,7 @@ static int register_module(const Output_Module_t *dm, void *dl_handle)
     }
     else
     {
+        /* 加入模块儿链表 */
         node = calloc(1, sizeof(Output_ListNode_t));
         if (!node)
             return OUTPUT_ERROR_NOMEM;
@@ -210,7 +211,7 @@ static int register_module(const Output_Module_t *dm, void *dl_handle)
         num_modules++;
     }
 
-    /*add all the plugins within the module*/
+    /* 注册模块儿中的输出插件，add all the plugins within the module*/
     while(current_dm)
     {
         int rval;
@@ -230,6 +231,7 @@ static int register_module(const Output_Module_t *dm, void *dl_handle)
     return OUTPUT_SUCCESS;
 }
 
+/* 加载输出插件库模块儿，filename模块儿名 */
 int output_load_module(const char *filename)
 {
     const Output_Module_t *dm;
@@ -246,21 +248,21 @@ int output_load_module(const char *filename)
         fprintf(stderr, "%s: File does not exist.\n", filename);
         return OUTPUT_ERROR;
     }
-
+    
+    /* 打开库模块儿文件 */
     if ((dl_handle = dlopen(filename, RTLD_NOW)) == NULL)
     {
         fprintf(stderr, "%s: %s: %s\n", filename, dlopen_func_name, dlerror());
         return OUTPUT_ERROR;
     }
 
-    /* Initiate _dod functions*/
+    /* 查找初始化入口函数，initOutputPlugins()，并调用初始化 */
     if ((outputInit = dlsym(dl_handle, "initOutputPlugins")) == NULL)
     {
         fprintf(stderr, "%s: %s: %s\n", filename, dlsym_func_name, dlerror());
         dlclose(dl_handle);
         return OUTPUT_ERROR;
     }
-
     if (initOutputPlugin(outputInit) !=OUTPUT_SUCCESS)
     {
         fprintf(stderr, "%s: Failed to load OUTPUT module.\n", filename);
@@ -268,14 +270,13 @@ int output_load_module(const char *filename)
         return OUTPUT_ERROR;
     }
 
+    /* 注册模块儿 */
     if ((dm = (const Output_Module_t*)dlsym(dl_handle, "OUTPUT_MODULE_DATA")) == NULL)
     {
         fprintf(stderr, "%s: %s: %s\n", filename, dlsym_func_name, dlerror());
         dlclose(dl_handle);
         return OUTPUT_ERROR;
     }
-
-
     if ((rval = register_module(dm, dl_handle)) != OUTPUT_SUCCESS)
     {
         if (rval != OUTPUT_ERROR_EXISTS)
@@ -303,7 +304,7 @@ static void load_static_modules(void)
 }
 #endif
 
-/*Load all the output modules in the directory*/
+/* 加载指定目录的所有模块儿，并注册实现的输出插件，Load all the output modules in the directory*/
 int output_load(const char *directory)
 {
 
@@ -329,6 +330,7 @@ int output_load(const char *directory)
 
     DEBUG_WRAP(DebugMessage(DEBUG_INIT,"Loading modules in: %s\n", directory););
 
+    /* 顺次读取目录，加载模块儿 */
     while((de = readdir(dirp)) != NULL)
     {
         p = strrchr(de->d_name, '.');

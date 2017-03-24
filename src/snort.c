@@ -241,9 +241,9 @@ PacketCount pc;               /* 报文统计信息，packet count information *
 uint32_t *netmasks = NULL;    /* 网络掩码数组，precalculated netmask array */
 char **protocol_names = NULL; /* 以IP协议号为索引的协议名数组 */
 char *snort_conf_file = NULL; /* 命令行参数-c指定的配置文件 */
-char *snort_conf_dir = NULL;  /* */
+char *snort_conf_dir = NULL;  /* 配置文件目录 */
 
-SnortConfig *snort_cmd_line_conf = NULL;
+SnortConfig *snort_cmd_line_conf = NULL;    /* 命令行配置信息 */
 SnortConfig *snort_conf = NULL;             /* snort的配置信息 */
 
 #if defined(SNORT_RELOAD) && !defined(WIN32)
@@ -256,7 +256,7 @@ int internal_log_level = INTERNAL_LOG_LEVEL__MESSAGE;
 tSfActionQueueId decoderActionQ = NULL;
 MemPool decoderAlertMemPool;
 
-VarNode *cmd_line_var_list = NULL;
+VarNode *cmd_line_var_list = NULL;          /* 命令行通过-S指定的变量 */
 
 #ifdef TARGET_BASED
 pthread_t attribute_reload_thread_id;
@@ -363,12 +363,12 @@ static snort_reload_t reload_total = 0;
 static int done_processing = 0;
 static int exit_logged = 0;
 
-static SF_LIST *pcap_object_list = NULL;
+static SF_LIST *pcap_object_list = NULL;   /* 待读取的.pcap文件链表 */
 static SF_QUEUE *pcap_queue = NULL;
 static char* pcap_filter = NULL;
 
-static int snort_argc = 0;
-static char **snort_argv = NULL;
+static int snort_argc = 0;                 /* 暂存snort参数个数 */
+static char **snort_argv = NULL;           /* 暂存snort参数数组 */
 
 /* command line options for getopt */
 static char *valid_options =
@@ -778,8 +778,8 @@ static int InlineFailOpen (void)
                 }
             }
 # endif
-            DAQ_Start();
-            SetPktProcessor();
+            DAQ_Start();                        /* 开启报文接收通道 */
+            SetPktProcessor();                  /* 设置起始解码 */
             inline_failopen_initialized = 1;
 
             /* Passing packets is in the main thread because some systems
@@ -943,7 +943,7 @@ int SnortMain(int argc, char *argv[])
     else if ( DAQ_UnprivilegedStart() )
     {
         SnortUnprivilegedInit();
-        SetPktProcessor();
+        SetPktProcessor();                 /* 设置解码函数 */
         DAQ_Start();
     }
     else
@@ -1101,6 +1101,7 @@ static void PQ_SetFilter (const char* f)
     pcap_filter = f ? SnortStrdup(f) : NULL;
 }
 
+/* 记录待读取的tcpdump报文 */
 static void PQ_Single (const char* pcap)
 {
     PcapReadObject* pro;
@@ -1770,6 +1771,7 @@ static DAQ_Verdict PacketCallback(
 #endif
     PREPROC_PROFILE_END(eventqPerfStats);
 
+    /* 规则处理入口 */
     verdict = ProcessPacket(&s_packet, pkthdr, pkt, NULL);
 
 #ifdef ACTIVE_RESPONSE
@@ -1868,6 +1870,7 @@ static DAQ_Verdict PacketCallback(
     return verdict;
 }
 
+/* 输出报文内容 */
 static void PrintPacket(Packet *p)
 {
     if (p->iph != NULL)
@@ -1890,6 +1893,7 @@ static void PrintPacket(Packet *p)
 #endif  // NO_NON_ETHER_DECODER
 }
 
+/* 报文过规则入口 */
 DAQ_Verdict ProcessPacket(
     Packet* p, const DAQ_PktHdr_t* pkthdr, const uint8_t* pkt, void* ft)
 {
@@ -1899,7 +1903,7 @@ DAQ_Verdict ProcessPacket(
     setNapRuntimePolicy(getDefaultPolicy());
     setIpsRuntimePolicy(getDefaultPolicy());
 
-    /* call the packet decoder */
+    /* 解码，一次性解码到传输层，如TCP；call the packet decoder */
     (*grinder) (p, pkthdr, pkt);
     assert(p->pkth && p->pkt);
 
@@ -1920,12 +1924,12 @@ DAQ_Verdict ProcessPacket(
     /***** Policy specific decoding should into this function *****/
     p->configPolicyId = snort_conf->targeted_policies[ getNapRuntimePolicy() ]->configPolicyId;
 
-    /* just throw away the packet if we are configured to ignore this port */
+    /* 规则前处理插件，内部调用过规则处理；just throw away the packet if we are configured to ignore this port */
     if ( !(p->packet_flags & PKT_IGNORE) )
     {
         /* start calling the detection processes */
         Preprocess(p);
-        log_func(p);
+        log_func(p);               /* 日志 */
     }
 
     if ( Active_SessionWasDropped() )
@@ -2162,6 +2166,7 @@ static int ShowUsage(char *program_name)
     return 0;
 }
 
+/* 记录动态文件或目录名 */
 static void ParseCmdLineDynamicLibInfo(SnortConfig *sc, int type, char *path)
 {
     DynamicLibInfo *dli = NULL;
@@ -2172,6 +2177,7 @@ static void ParseCmdLineDynamicLibInfo(SnortConfig *sc, int type, char *path)
 
     switch (type)
     {
+        /* 动态预处理插件库信息 */
         case DYNAMIC_PREPROC_FILE:
         case DYNAMIC_PREPROC_DIRECTORY:
             DEBUG_WRAP(DebugMessage(DEBUG_INIT, "Dynamic preprocessor specifier\n"););
@@ -2188,7 +2194,8 @@ static void ParseCmdLineDynamicLibInfo(SnortConfig *sc, int type, char *path)
 
             dli = sc->dyn_preprocs;
             break;
-
+            
+        /* 动态规则库信息 */
         case DYNAMIC_LIBRARY_FILE:
         case DYNAMIC_LIBRARY_DIRECTORY:
             DEBUG_WRAP(DebugMessage(DEBUG_INIT, "Dynamic detection specifier\n"););
@@ -2205,7 +2212,8 @@ static void ParseCmdLineDynamicLibInfo(SnortConfig *sc, int type, char *path)
 
             dli = sc->dyn_rules;
             break;
-
+            
+        /* 动态引擎库信息 */
         case DYNAMIC_ENGINE_FILE:
         case DYNAMIC_ENGINE_DIRECTORY:
             DEBUG_WRAP(DebugMessage(DEBUG_INIT, "Dynamic engine specifier\n"););
@@ -2222,6 +2230,8 @@ static void ParseCmdLineDynamicLibInfo(SnortConfig *sc, int type, char *path)
 
             dli = sc->dyn_engines;
             break;
+            
+        /* 加载动态输出插件模块儿 */
         case DYNAMIC_OUTPUT_FILE:
             output_load_module(path);
             return;
@@ -2237,6 +2247,7 @@ static void ParseCmdLineDynamicLibInfo(SnortConfig *sc, int type, char *path)
             break;
     }
 
+    /* 指定动态文件类型 */
     dlp = (DynamicLibPath *)SnortAlloc(sizeof(DynamicLibPath));
     switch (type)
     {
@@ -2278,7 +2289,7 @@ static void ParseCmdLineDynamicLibInfo(SnortConfig *sc, int type, char *path)
  * Returns: None
  *
  */
-
+/* 解析命令行参数 */
 static void ParseCmdLine(int argc, char **argv)
 {
     int ch;
@@ -2311,11 +2322,12 @@ static void ParseCmdLine(int argc, char **argv)
 
     /* Look for a -D and/or -M switch so we can start logging to syslog
      * with "snort" tag right away */
+    /* 先解析日志配置信息，以尽快输出snort日志 */
     while ((ch = getopt_long(argc, argv, valid_options, long_options, &option_index)) != -1)
     {
         switch (ch)
         {
-            case 'M':
+            case 'M':          
                 if (syslog_configured)
                     break;
 
@@ -2382,13 +2394,14 @@ static void ParseCmdLine(int argc, char **argv)
     optopt = 0;
     optind = 1;
 
-    /* loop through each command line var and process it */
+    /* 分析剩余参数，loop through each command line var and process it */
     while ((ch = getopt_long(argc, argv, valid_options, long_options, &option_index)) != -1)
     {
         DEBUG_WRAP(DebugMessage(DEBUG_INIT, "Processing cmd line switch: %c\n", ch););
 
         switch (ch)
         {
+            /* 加载动态文件或目录 */
             case DYNAMIC_ENGINE_FILE:       /* Load dynamic engine specified */
             case DYNAMIC_ENGINE_DIRECTORY:  /* Load dynamic engine specified */
             case DYNAMIC_PREPROC_FILE:      /* Load dynamic preprocessor lib specified */
@@ -2399,7 +2412,7 @@ static void ParseCmdLine(int argc, char **argv)
             case DYNAMIC_OUTPUT_DIRECTORY:
                 ParseCmdLineDynamicLibInfo(sc, ch, optarg);
                 break;
-
+            /* 输出加载的策略到指定目录 */
             case DUMP_DYNAMIC_RULES:
                 ConfigDumpDynamicRulesPath(sc, optarg);
                 break;
@@ -2475,7 +2488,7 @@ static void ParseCmdLine(int argc, char **argv)
                     FatalError("Invalid search method: %s.\n", optarg);
 
                 break;
-
+            /* 设置DAQ类型 */
             case ARG_DAQ_TYPE:
                 ConfigDaqType(sc, optarg);
                 break;
@@ -2575,8 +2588,8 @@ static void ParseCmdLine(int argc, char **argv)
             case 'B':  /* obfuscate with a substitution mask */
                 ConfigObfuscationMask(sc, optarg);
                 break;
-
-            case 'c':  /* use configuration file x */
+            
+            case 'c':  /* 指定了配置文件，use configuration file x */
                 sc->run_mode_flags |= RUN_MODE_FLAG__IDS;
                 snort_conf_file = SnortStrdup(optarg);
                 break;
@@ -2644,7 +2657,8 @@ static void ParseCmdLine(int argc, char **argv)
             case 'H':
                 sc->run_flags |= RUN_FLAG__STATIC_HASH;
                 break;
-
+                
+            /* 指定捕捉报文的接口 */
             case 'i':
                 ConfigInterface(sc, optarg);
                 break;
@@ -3003,8 +3017,10 @@ static void ParseCmdLine(int argc, char **argv)
         }
     }
 
+    /* 命令行尾端的bpf过滤器 */
     sc->bpf_filter = copy_argv(&argv[optind]);
 
+    /* 参数逻辑检测 */
     if ((sc->run_mode_flags & RUN_MODE_FLAG__TEST) &&
         (sc->run_flags & RUN_FLAG__DAEMON))
     {
@@ -3115,6 +3131,7 @@ static void ParseCmdLine(int argc, char **argv)
         ParseOutput(sc, NULL, "log_tcpdump");
     }
 
+    /* 根据运行模式，设定日志函数 */
     switch ( snort_conf->run_mode )
     {
         case RUN_MODE__IDS:
@@ -3133,6 +3150,8 @@ static void ParseCmdLine(int argc, char **argv)
         default:
             break;
     }
+
+    /* 获取配置文件目录 */
     SetSnortConfDir();
 }
 
@@ -4193,6 +4212,7 @@ static void InitGlobals(void)
  * but the goal is to minimize config checks at run time when running in
  * IDS mode so we keep things simple and enforce that the only difference
  * among run_modes is how we handle packets via the log_func. */
+/* 分配内存，并以默认配置信息初始化 */
 SnortConfig * SnortConfNew(void)
 {
     SnortConfig *sc = (SnortConfig *)SnortAlloc(sizeof(SnortConfig));
@@ -4557,7 +4577,7 @@ static void InitProtoNames(void)
     }
 }
 
-
+/* 获取配置文件目录名 */
 static void SetSnortConfDir(void)
 {
     /* extract the config directory from the config filename */
@@ -5106,7 +5126,7 @@ void SnortInit(int argc, char **argv)
 #endif
     }
 
-    init_fileAPI();                    /**/
+    init_fileAPI();                    /* 初始化传输文件检测相关句柄 */
 
     /* if we're using the rules system, it gets initialized here */
     if (snort_conf_file != NULL)       /* 命令行参数-c指定了配置文件；解析 */
@@ -5141,16 +5161,16 @@ void SnortInit(int argc, char **argv)
 #endif
 
         LogMessage("Parsing Rules file \"%s\"\n", snort_conf_file);
-        sc = ParseSnortConf();         /* 解析配置文件 */
+        sc = ParseSnortConf();         /* 解析配置文件，此处不解析规则 */
 
         /* Merge the command line and config file confs to take care of
          * command line overriding config file.
          * Set the global snort_conf that will be used during run time */
         snort_conf = MergeSnortConfs(snort_cmd_line_conf, sc);
-                                       /**/
+                                       /* 合并命令行和配置文件的配置；命令行优先 */
         InitSynToMulticastDstIp(snort_conf);
         InitMulticastReservedIp(snort_conf);
-                                       /**/
+                                       /* 配置中加入多播、广播地址 */
 #ifdef TARGET_BASED
         /* Parse attribute table stuff here since config max_attribute_hosts
          * is apart from attribute table configuration.
@@ -5248,7 +5268,7 @@ void SnortInit(int argc, char **argv)
     if (snort_conf->bpf_filter != NULL)
         LogMessage("Snort BPF option: %s\n", snort_conf->bpf_filter);
 
-    LoadDynamicPlugins(snort_conf);    /**/
+    LoadDynamicPlugins(snort_conf);    /* 加载动态处理插件 */
 
     /* Display snort version information here so that we can also show dynamic
      * plugin versions, if loaded.  */

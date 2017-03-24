@@ -42,7 +42,7 @@ typedef struct
     /**number of vlans which are member of this group. When membership falls to 0, then this group should be deleted.
      */
     unsigned int refCount;
-    char *filename;
+    char *filename;             /* 配置文件名 */
     unsigned int isConfigProcessed:1;
 
 } tSfPolicy;
@@ -56,12 +56,13 @@ typedef enum {
 
 typedef unsigned int tSfPolicyId;
 
+
 typedef struct
 {
     /**group id assigned to each file name. The groupId is an abstract concept
      * to tie multiple vlans into one group. */
-    tSfPolicy **ppPolicies;
-    tSfPolicyId defaultPolicyId;
+    tSfPolicy **ppPolicies;        /* 跟踪配置文件相关信息 */
+    tSfPolicyId defaultPolicyId;   /* 生效的配置文件 */
     /**policy id of configuration file or packet being processed. */
     tSfPolicyId numAllocatedPolicies;
     unsigned int numActivePolicies;

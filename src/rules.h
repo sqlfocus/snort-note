@@ -140,20 +140,22 @@ typedef struct _ActivateListNode
  
 struct _RuleListNode;
 
+/* 规则节点 */
 typedef struct _ListHead
 {
     struct _OutputFuncNode *LogList;
     struct _OutputFuncNode *AlertList;
-    struct _RuleListNode *ruleListNode;
+    struct _RuleListNode *ruleListNode;  /* 指向规则类型节点 */
 } ListHead; 
 
+/* 规则类型 */
 typedef struct _RuleListNode
 {
-    ListHead *RuleList;         /* The rule list associated with this node */
+    ListHead *RuleList;         /* 规则列表，The rule list associated with this node */
     RuleType mode;              /* the rule mode */
     int rval;                   /* 0 == no detection, 1 == detection event */
     int evalIndex;              /* eval index for this rule set */
-    char *name;                 /* name of this rule list (for debugging)  */
+    char *name;                 /* 类型名，name of this rule list (for debugging)  */
     struct _RuleListNode *next; /* the next RuleListNode */
 } RuleListNode;
 

@@ -1477,7 +1477,7 @@ static inline int fpEvalHeaderUdp(Packet *p, OTNX_MATCH_DATA *omd)
 
 /*
 **  fpEvalHeaderTcp::
-*/
+*//* TCP规则处理入口 */
 static inline int fpEvalHeaderTcp(Packet *p, OTNX_MATCH_DATA *omd)
 {
     PORT_GROUP *src = NULL, *dst = NULL, *gen = NULL;
@@ -1620,7 +1620,7 @@ static inline int fpEvalHeaderIp(Packet *p, int ip_proto, OTNX_MATCH_DATA *omd)
 **  FORMAL OUTPUT
 **    int - 0 means that packet has been processed.
 **
-*/
+*//* 一次性处理所有层规则，包括IP、TCP等 */
 int fpEvalPacket(Packet *p)
 {
     int ip_proto = GET_IPH_PROTO(p);

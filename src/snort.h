@@ -418,13 +418,13 @@ typedef enum _RunMode
 
 typedef enum _RunModeFlag
 {
-    /* -V */
+    /* 打印版本信息，-V */
     RUN_MODE_FLAG__VERSION      = 0x00000001,
 
     /* --dump-dynamic-rules */
     RUN_MODE_FLAG__RULE_DUMP    = 0x00000002,
 
-    /* neither of the above and snort.conf presence (-c or implicit) */
+    /* 以IDS模式运行，neither of the above and snort.conf presence (-c or implicit) */
     RUN_MODE_FLAG__IDS          = 0x00000004,
 
     /* snort.conf presence and -T */
@@ -530,9 +530,10 @@ typedef enum _LoggingFlag
 
 } LoggingFlag;
 
+/* 内部日志级别 */
 typedef enum _InternalLogLevel
 {
-    INTERNAL_LOG_LEVEL__SUPPRESS_ALL,
+    INTERNAL_LOG_LEVEL__SUPPRESS_ALL,  /* 不打印 */
     INTERNAL_LOG_LEVEL__ERROR,
     INTERNAL_LOG_LEVEL__WARNING,
     INTERNAL_LOG_LEVEL__MESSAGE
@@ -615,9 +616,9 @@ typedef struct _SnortPolicy
 #endif
     PreprocConfig *preproc_configs;
 
-    VarEntry *var_table;
+    VarEntry *var_table;            /* 记录配置变量 */
     uint32_t var_id;
-    vartable_t *ip_vartable;
+    vartable_t *ip_vartable;        /* 记录IP变量 */
 
     /* The portobjects in these are attached to rtns and used during runtime */
     PortVarTable *portVarTable;     /* named entries, uses a hash table */
@@ -675,13 +676,15 @@ typedef struct _SnortPolicy
 struct _IntelPmHandles;
 #endif
 struct _MandatoryEarlySessionCreator;
+
+/* 配置信息结构，包括配置文件、命令行 */
 typedef struct _SnortConfig
 {
     RunMode run_mode;            /* 运行模式 */
-    int run_mode_flags;
+    int run_mode_flags;          /* */
     int run_flags;
     int output_flags;
-    int logging_flags;
+    int logging_flags;           /* 日志模式 */
     int log_tcpdump;
     int no_log;
     int no_alert;
@@ -701,7 +704,7 @@ typedef struct _SnortConfig
     uint64_t pkt_skip;
 #endif
 
-    char *dynamic_rules_path;   /* --dump-dynamic-rules */
+    char *dynamic_rules_path;       /* 输出加载的规则，--dump-dynamic-rules */
 
     /* --dynamic-engine-lib
      * --dynamic-engine-lib-dir
@@ -712,9 +715,9 @@ typedef struct _SnortConfig
      *
      * See below for struct type
      */
-    DynamicLibInfo *dyn_engines;
-    DynamicLibInfo *dyn_rules;
-    DynamicLibInfo *dyn_preprocs;
+    DynamicLibInfo *dyn_engines;    /* 动态引擎库信息 */
+    DynamicLibInfo *dyn_rules;      /* 动态规则处理库信息 */
+    DynamicLibInfo *dyn_preprocs;   /* 动态预处理插件库信息 */
 #ifdef SIDE_CHANNEL
     DynamicLibInfo *dyn_side_channels;
 #endif
@@ -765,13 +768,13 @@ typedef struct _SnortConfig
     char pidfile_suffix[MAX_PIDFILE_SUFFIX + 1];  /* -R */
     char *log_dir;           /* -l or config log_dir */
     char *orig_log_dir;      /* set in case of chroot */
-    char *interface;         /* -i or config interface */
+    char *interface;         /* 被捕捉报文的接口，-i or config interface */
     char *bpf_file;          /* -F or config bpf_file */
     char *pcap_log_file;     /* -L */
     char *chroot_dir;        /* -t or config chroot */
     char *alert_file;
     char *perf_file;         /* -Z */
-    char *bpf_filter;        /* last command line arguments */
+    char *bpf_filter;        /* 命令行尾端的bpf过滤器，last command line arguments */
     char* daq_type;          /* --daq or config daq */
     char* daq_mode;          /* --daq-mode or config daq_mode */
     void* daq_vars;          /* --daq-var or config daq_var */
@@ -780,7 +783,7 @@ typedef struct _SnortConfig
     char* event_trace_file;
     uint16_t event_trace_max;
 
-    int thiszone;
+    int thiszone;            /* 和UTC的时差，以秒为单位 */
 
 #ifdef WIN32
     char syslog_server[STD_BUF];
@@ -835,7 +838,7 @@ typedef struct _SnortConfig
 
     OutputConfig *output_configs;
     OutputConfig *rule_type_output_configs;
-    SFGHASH *config_table;   /* table of config keywords and arguments */
+    SFGHASH *config_table;   /* hash表，存储配置关键字及值，table of config keywords and arguments */
     int asn1_mem;
 
     int active_dynamic_nodes;
@@ -863,11 +866,13 @@ typedef struct _SnortConfig
     SF_LIST **ip_proto_only_lists;
     uint8_t ip_proto_array[NUM_IP_PROTOS];
 
-    int num_rule_types;
-    RuleListNode *rule_lists;
-    int evalOrder[RULE_TYPE__MAX + 1];
+    /* 规则类型列表 */
+    int num_rule_types;          /* rule_lists[]数组大小 */
+    RuleListNode *rule_lists;    /* 规则类型列表 */
+    int evalOrder[RULE_TYPE__MAX + 1];  /* 值为注册顺序 */
 
-    ListHead Alert;         /* Alert Block Header */
+    /* 规则列表 */
+    ListHead Alert;         /* Alert Block Header，被rule_lists->RuleLIst索引 */
     ListHead Log;           /* Log Block Header */
     ListHead Pass;          /* Pass Block Header */
     ListHead Activation;    /* Activation Block Header */
@@ -889,7 +894,7 @@ typedef struct _SnortConfig
     /* Protected Content secure hash type default */
     Secure_Hash_Type Default_Protected_Content_Hash_Type;
 
-    /* master port list table */
+    /* 端口列表，master port list table */
     rule_port_tables_t *port_tables;
 
 #ifdef PPM_MGR
@@ -919,8 +924,8 @@ typedef struct _SnortConfig
     SFXHASH *detection_option_hash_table;
     SFXHASH *detection_option_tree_hash_table;
 
-    tSfPolicyConfig *policy_config;
-    SnortPolicy **targeted_policies;
+    tSfPolicyConfig *policy_config;       /* 配置文件信息 */
+    SnortPolicy **targeted_policies;      /* 解析结果 */
     unsigned int num_policies_allocated;
 
     char *base_version;
@@ -953,7 +958,7 @@ typedef struct _SnortConfig
     PreprocessorSwapData *preprocSwapData;
     void *streamReloadConfig;
 #endif
-    tSfPolicyId parserPolicyId;
+    tSfPolicyId parserPolicyId;             /* 正解析的配置文件 */
 #ifdef INTEL_SOFT_CPM
     struct _IntelPmHandles *ipm_handles;
 #endif
@@ -1119,12 +1124,12 @@ typedef struct _PacketCount
 
 } PacketCount;
 
+/* snort通过读取pcap报文，分析其攻击威胁；此结构存储待读取的pcap报文信息 */
 typedef struct _PcapReadObject
 {
-    int type;
-    char *arg;
+    int type;          /* 读取方式 */
+    char *arg;         /* 文件名 */
     char *filter;
-
 } PcapReadObject;
 
 typedef enum _EnableProtoFlag

@@ -11,6 +11,12 @@
    -SnortInit()
    -PacketLoop()
      -PacketCallback()
+       -ProcessPacket()
+         -grinder()                    解码
+         -Preprocess()
+           -Detect()
+             -fpEvalPacket()           过规则，~/src/fpdetect.c
+         -log_func()
      -SnortIdle()
  #+END_EXAMPLE
 

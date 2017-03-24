@@ -240,6 +240,7 @@ int Preprocess(Packet * p)
         // ok, dispatch all preprocs enabled for this packet/session
         DispatchPreprocessors( p, policy_id, policy );
 
+        /* 过规则 */
         if ( do_detect )
             Detect(p);
     }
@@ -523,7 +524,7 @@ void CallAlertPlugins(Packet * p, const char *message, Event *event)
 }
 
 /****************************************************************************
- *
+ * 报文过规则入口
  * Function: Detect(Packet *)
  *
  * Purpose: Apply the rules lists to the current packet

@@ -787,7 +787,7 @@ void DecodeEthTypes(Packet *p, const uint8_t *pkt, uint16_t ethtype, uint32_t ca
                         "IP datagram size calculated to be %lu bytes\n",
                         (unsigned long)(cap_len - linklen));
                     );
-
+            /* 网络层解码 */
             DecodeIP(pkt + linklen,
                     cap_len - linklen, p);
 
@@ -946,6 +946,7 @@ void DecodeEthPkt(Packet * p, const DAQ_PktHdr_t * pkthdr, const uint8_t * pkt)
             DebugMessage(DEBUG_DECODE, "type:0x%X len:0x%X\n",
                 ntohs(p->eh->ether_type), p->pkth->pktlen)
             );
+    /* 根据链路层类型，选择特定解码器 */
     DecodeEthTypes(p, p->pkt, ntohs(p->eh->ether_type), cap_len, linklen);
     PREPROC_PROFILE_END(decodePerfStats);
 }
@@ -2395,6 +2396,7 @@ static inline void DecodeIPv4Proto(const uint8_t proto,
     {
         case IPPROTO_TCP:
             pc.tcp++;
+            /* 传输层解码 */
             DecodeTCP(pkt, len, p);
             return;
 
@@ -2789,6 +2791,7 @@ void DecodeIP(const uint8_t * pkt, const uint32_t len, Packet * p)
         DEBUG_WRAP(DebugMessage(DEBUG_DECODE, "IP header length: %lu\n",
                     (unsigned long)hlen););
 
+        /* 根据网络层类型，继续解码 */
         DecodeIPv4Proto(p->iph->ip_proto, pkt+hlen, ip_len, p);
     }
     else

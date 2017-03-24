@@ -449,9 +449,9 @@ int head_count = 0;          /* number of header blocks (chain heads?) */
 int otn_count = 0;           /* number of chains */
 int dynamic_rule_count = 0;
 
-static port_list_t port_list;
+static port_list_t port_list;/* 配置文件的接口 */
 
-static rule_count_t tcpCnt;
+static rule_count_t tcpCnt;  
 static rule_count_t udpCnt;
 static rule_count_t icmpCnt;
 static rule_count_t ipCnt;
@@ -502,6 +502,7 @@ static void AddVarToTable(SnortConfig *, char *, char *);
 
 int ParseBool(char *arg);
 
+/* snort支持的配置关键字 */
 static const KeywordFunc snort_conf_keywords[] =
 {
     /* Rule keywords */
@@ -895,21 +896,25 @@ SnortConfig * ParseSnortConf(void)
     VarNode *tmp = cmd_line_var_list;
     tSfPolicyId policy_id;
 
+    /* 初始化当前解析的配置文件名及行号 */
     file_line = 0;
     file_name = snort_conf_file ? snort_conf_file : NULL_CONF;
 
+    /* 初始化解析信息 */
     InitParser();
 
     /* Setup the default rule action anchor points
      * Need to do this now in case we get a user defined rule type */
+    /* 注册规则类型 */
     CreateDefaultRules(sc);
 
+    /* 创建端口表，并加入"any"对象 */
     sc->port_tables = PortTablesNew();
 
     mpseInitSummary();
     OtnInit(sc);
 
-    /* Used to store "config" configurations */
+    /* 创建hash表，存储配置解析结果(key=val)，Used to store "config" configurations */
     sc->config_table = sfghash_new(20, 0, 0, free);
     if (sc->config_table == NULL)
     {
@@ -924,7 +929,7 @@ SnortConfig * ParseSnortConf(void)
     sc->detection_filter_config = DetectionFilterConfigNew();
     sc->ip_proto_only_lists = (SF_LIST **)SnortAlloc(NUM_IP_PROTOS * sizeof(SF_LIST *));
 
-    /* We're not going to parse rules on the first pass */
+    /* 起始，仅解析配置＋不解析规则，We're not going to parse rules on the first pass */
     parse_rules = 0;
 
     sc->policy_config = sfPolicyInit();
@@ -951,6 +956,7 @@ SnortConfig * ParseSnortConf(void)
 
     /* Add command line defined variables - duplicates will already
      * have been resolved */
+    /* 导入命令行设置的变量 */
     while (tmp != NULL)
     {
         AddVarToTable(sc, tmp->name, tmp->value);
@@ -964,6 +970,7 @@ SnortConfig * ParseSnortConf(void)
         ParseError("Could not allocate storage for preprocessor rule options.\n");
     }
 
+    /* 解析配置文件，仅解析非rule配置 */
     if ( strcmp(file_name, NULL_CONF) )
         ParseConfigFile(sc, sc->targeted_policies[policy_id], file_name);
 
@@ -5847,6 +5854,7 @@ static void InitPolicyMode(SnortPolicy *p)
      }
 }
 
+/* 初始化配置文件解析相关的变量 */
 static void InitParser(void)
 {
     rule_count = 0;
@@ -5879,6 +5887,7 @@ static void InitParser(void)
     memset(config_opt_configured, 0, sizeof(config_opt_configured));
 }
 
+/* 解析规则的入口 */
 void ParseRules(SnortConfig *sc)
 {
     tSfPolicyId policy_id;
@@ -6008,6 +6017,7 @@ static void ParseInclude(SnortConfig *sc, SnortPolicy *p, char *arg)
     file_line = stored_file_line;
 }
 
+/* 逐行解析配置文件 */
 static void ParseConfigFile(SnortConfig *sc, SnortPolicy *p, char *fname)
 {
     /* Used for line continuation */
@@ -6054,6 +6064,7 @@ static void ParseConfigFile(SnortConfig *sc, SnortPolicy *p, char *fname)
         if ((strlen(index) == 0) || (*index == '#') || (*index == ';'))
             continue;
 
+        /* 读取新行，并和上一行合并，处理行结尾为\的情况 */
         if (continuation)
         {
             int new_line_len = strlen(saved_line) + strlen(index) + 1;
@@ -6080,6 +6091,7 @@ static void ParseConfigFile(SnortConfig *sc, SnortPolicy *p, char *fname)
 
         /* check for a '\' continuation character at the end of the line
          * if it's there we need to get the next line in the file */
+        /* 读取完毕，处理之 */
         if (ContinuationCheck(index) == 0)
         {
             char **toks;
@@ -6091,7 +6103,7 @@ static void ParseConfigFile(SnortConfig *sc, SnortPolicy *p, char *fname)
             DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,
                                     "[*] Processing keyword: %s\n", index););
 
-            /* Get the keyword and args */
+            /* 利用空格或\t做为分隔符，获取字符token，Get the keyword and args */
             toks = mSplit(index, " \t", 2, &num_toks, 0);
             if (num_toks != 2)
                 ParseError("Invalid configuration line: %s", index);
@@ -6099,6 +6111,7 @@ static void ParseConfigFile(SnortConfig *sc, SnortPolicy *p, char *fname)
             keyword = SnortStrdup(ExpandVars(sc, toks[0]));
             args = toks[1];
 
+            /* 匹配关键字并调用设置的函数处理 */
             for (i = 0; snort_conf_keywords[i].name != NULL; i++)
             {
                 if (strcasecmp(keyword, snort_conf_keywords[i].name) == 0)
@@ -6130,6 +6143,7 @@ static void ParseConfigFile(SnortConfig *sc, SnortPolicy *p, char *fname)
                     if (strcasecmp(keyword, SNORT_CONF_KEYWORD__RULE_TYPE) == 0)
                         _ParseRuleTypeDeclaration(sc, fp, args, parse_rules);
                     else
+                        /* 关键字的解析处理函数 */
                         snort_conf_keywords[i].parse_func(sc, p, args);
 
                     break;
@@ -6137,8 +6151,7 @@ static void ParseConfigFile(SnortConfig *sc, SnortPolicy *p, char *fname)
             }
 
             /* Didn't find any pre-defined snort_conf_keywords.  Look for a user defined
-             * rule type */
-
+             * rule type *//* 用户自定义类型 */
             if ((snort_conf_keywords[i].name == NULL) && parse_rules)
             {
                 RuleListNode *node;
@@ -9876,6 +9889,7 @@ static void ParseFile(SnortConfig *sc, SnortPolicy *p, char *args)
     file_rule_parse(args, sc->file_config);
 }
 
+/* 记录配置变量及值 */
 static void AddVarToTable(SnortConfig *sc, char *name, char *value)
 {
     //TODO: snort.cfg and rules should use PortVar instead ...this allows compatability for now.
@@ -11224,6 +11238,7 @@ static void ParseOtnThreshold(SnortConfig *sc, RuleTreeNode *rtn,
     thdx_tmp = &thdx;
 }
 
+/* 注册默认规则类型 */
 static void CreateDefaultRules(SnortConfig *sc)
 {
     if (sc == NULL)
@@ -11811,15 +11826,15 @@ void PortTablesFree(rule_port_tables_t *port_tables)
 }
 
 /****************************************************************************
- *
+ * 创建规则类型
  * Function: CreateRuleType
  *
  * Purpose: Creates a new type of rule and adds it to the end of the rule list
  *
  * Arguments: name = name of this rule type
- *                       mode = the mode for this rule type
- *                   rval = return value for this rule type (for detect events)
- *                       head = list head to use (or NULL to create a new one)
+ *            mode = the mode for this rule type
+ *            rval = return value for this rule type (for detect events)
+ *            head = list head to use (or NULL to create a new one)
  *
  * Returns: the ListHead for the rule type
  *
@@ -11835,7 +11850,7 @@ static ListHead * CreateRuleType(SnortConfig *sc, char *name,
 
     node = (RuleListNode *)SnortAlloc(sizeof(RuleListNode));
 
-    /* If this is the first rule list node, then we need to
+    /* 规则类型链表，If this is the first rule list node, then we need to
      * create a new list. */
     if (sc->rule_lists == NULL)
     {
@@ -11864,7 +11879,7 @@ static ListHead * CreateRuleType(SnortConfig *sc, char *name,
         last->next = node;
     }
 
-    /* User defined rule type so we need to create a list head for it */
+    /* 规则链表，User defined rule type so we need to create a list head for it */
     if (head == NULL)
     {
         node->RuleList = (ListHead *)SnortAlloc(sizeof(ListHead));
@@ -11875,6 +11890,7 @@ static ListHead * CreateRuleType(SnortConfig *sc, char *name,
         node->RuleList = head;
     }
 
+    /* 关联规则类型链与对应规则链 */
     node->RuleList->ruleListNode = node;
     node->mode = mode;
     node->rval = rval;
