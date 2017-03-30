@@ -78,7 +78,7 @@ extern OptTreeNode *otn_tmp;
 
 typedef struct _SyslogData
 {
-    int facility;
+    int facility;    /* 此处参数含义参考man openlog */
     int priority;
     int options;
 } SyslogData;
@@ -123,7 +123,7 @@ void AlertSyslogSetup(void)
  *
  *//* 输出插件的初始化入口 */
 static void AlertSyslogInit(struct _SnortConfig *sc, char *args)
-{
+{/* args的可能值，"LOG_AUTH LOG_ALERT"*/
     SyslogData *data;
     DEBUG_WRAP(DebugMessage(DEBUG_INIT, "Output: Alert-Syslog Initialized\n"););
 

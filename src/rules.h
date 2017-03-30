@@ -153,7 +153,7 @@ typedef struct _RuleListNode
 {
     ListHead *RuleList;         /* 规则列表，二层结构；The rule list associated with this node */
     RuleType mode;              /* 规则模式，the rule mode */
-    int rval;                   /* 0/1标识不检测/检测事件；0 == no detection, 1 == detection event */
+    int rval;                   /* 0/1, 触发此类型事件后的返回值；0 == no detection, 1 == detection event */
     int evalIndex;              /* 规则类型的索引，由注册顺序决定；eval index for this rule set */
     char *name;                 /* 类型名，name of this rule list (for debugging)  */
     struct _RuleListNode *next; /* the next RuleListNode */

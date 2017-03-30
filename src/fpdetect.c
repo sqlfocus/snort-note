@@ -1446,6 +1446,7 @@ static inline int fpEvalHeaderUdp(Packet *p, OTNX_MATCH_DATA *omd)
         prmFindNoServiceRuleGroup(snort_conf->prmUdpRTNX, p->dp, p->sp, &nssrc, &nsdst, &gen);
     }
 #else
+    /* 选择规则集合 */
     if (!prmFindRuleGroupUdp(snort_conf->prmUdpRTNX, p->dp, p->sp, &src, &dst, &gen))
         return 0;
 #endif
@@ -1459,6 +1460,7 @@ static inline int fpEvalHeaderUdp(Packet *p, OTNX_MATCH_DATA *omd)
 
     InitMatchInfo(omd);
 
+    /* 过规则 */
     if ( dst )
         fpEvalHeaderSW(dst, p, 1, 0, omd);
     if ( src )
@@ -1472,6 +1474,7 @@ static inline int fpEvalHeaderUdp(Packet *p, OTNX_MATCH_DATA *omd)
     if ( gen )
         fpEvalHeaderSW(gen, p, 1, 0, omd);
 
+    /* 产生事件 */
     return fpFinalSelectEvent(omd, p);
 }
 
@@ -1510,7 +1513,7 @@ static inline int fpEvalHeaderTcp(Packet *p, OTNX_MATCH_DATA *omd)
         prmFindNoServiceRuleGroup(snort_conf->prmTcpRTNX, p->dp, p->sp, &nssrc, &nsdst, &gen);
     }
 #else
-    /* 查找当前数据包对应的匹配子集，源端口\目的端口\通用子集 */
+    /* 查找当前数据包对应的匹配子集，以端口分类，源端口\目的端口\通用子集(anyany) */
     if (!prmFindRuleGroupTcp(snort_conf->prmTcpRTNX, p->dp, p->sp, &src, &dst, &gen))
         return 0;
 #endif
@@ -1661,6 +1664,7 @@ int fpEvalPacket(Packet *p)
         do_detect_content = tmp_do_detect_content;
     }
 
+    /* 依照协议，分流；提升性能 */
     switch(ip_proto)
     {
         case IPPROTO_TCP:
@@ -1705,7 +1709,7 @@ int fpEvalPacket(Packet *p)
     }
 
     /*
-    **  No Match on TCP/UDP, Do IP
+    ** 非TCP/UDP/ICMP报文，过IP规则；No Match on TCP/UDP, Do IP
     */
     return fpEvalHeaderIp(p, ip_proto, omd);
 }

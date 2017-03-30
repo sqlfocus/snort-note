@@ -353,7 +353,7 @@ char *SearchInstanceFindStringEnd(char *match_ptr, int buflen, char *search_str,
 }
 
 
-/* API exported by this module */
+/* 字符串多模搜索引擎，API exported by this module */
 SearchAPI searchAPI =
 {
     SearchInit,

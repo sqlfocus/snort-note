@@ -432,7 +432,7 @@ void GetNameValue (char* arg, char** nam, char** val, const char* err);
  * @param policyId policy id
  *
  * @return pointer to deleted RTN, NULL otherwise.
- */
+ *//* 由规则选项获取对应的规则头 */
 static inline RuleTreeNode *getRtnFromOtn(OptTreeNode *otn, tSfPolicyId policyId)
 {
     if (otn && otn->proto_nodes && (otn->proto_node_num > (unsigned)policyId))

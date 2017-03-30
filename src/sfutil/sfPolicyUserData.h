@@ -45,7 +45,7 @@ typedef struct
 
     /**user configuration for a policy. This is a pointer to an array of pointers
      * to user configuration.
-    */
+     *//* 类型HTTPINSPECT_GLOBAL_CONF */
     void **userConfig;
 
 } tSfPolicyUserContext;

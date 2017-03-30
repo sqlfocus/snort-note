@@ -36,36 +36,36 @@ struct _RuleTreeNode;     /* forward declaration of RTN data struct */
 typedef struct _OptFpList
 {
     /* context data for this test */
-    void *context;
+    void *context;                    /* 记录正则串相关数据，如PatternMatchData */
 
     int (*OptTestFunc)(void *option_data, Packet *p);
-
+                                      /* 匹配函数 */
     struct _OptFpList *next;
 
     unsigned char isRelative;
-    option_type_t type;
+    option_type_t type;               /* 匹配类型 */
 
 } OptFpList;
 
+/* 规则选项解析结果 */
 typedef struct _OptTreeNode
 {
     /* plugin/detection functions go here */
-    OptFpList *opt_func;
-    RspFpList *rsp_func;  /* response functions */
+    OptFpList *opt_func;         /* 规则的匹配函数 */
+    RspFpList *rsp_func;         /* response functions */
     OutputFuncNode *outputFuncs; /* per sid enabled output functions */
 
     /* the ds_list is absolutely essential for the plugin system to work,
        it allows the plugin authors to associate "dynamic" data structures
        with the rule system, letting them link anything they can come up 
        with to the rules list */
-    void *ds_list[PLUGIN_MAX];   /* list of plugin data struct pointers */
+    void *ds_list[PLUGIN_MAX];   /* 插件数据指针，如content模式匹配数据PatternMatchData，list of plugin data struct pointers */
 
-    int chain_node_number;
+    int chain_node_number;       /* 分配顺序计数？ */
 
     int evalIndex;       /* where this rule sits in the evaluation sets */
 
-    int proto;           /* protocol, added for integrity checks 
-                            during rule parsing */
+    int proto;                   /* IP协议, added for integrity checks during rule parsing */
 
     int session_flag;    /* record session data */
 
@@ -98,7 +98,7 @@ typedef struct _OptTreeNode
     struct _OptTreeNode *nextSoid;
 
     /* ptr to list of RTNs (head part) */
-    struct _RuleTreeNode **proto_nodes;
+    struct _RuleTreeNode **proto_nodes;   /* 对应的规则头列表 */
 
     /**number of proto_nodes. */
     unsigned short proto_node_num;
@@ -108,7 +108,7 @@ typedef struct _OptTreeNode
 
     uint16_t longestPatternLen;
 
-    int rule_state; /* Enabled or Disabled */
+    int rule_state;                       /* Enabled or Disabled */
 
 #ifdef PERF_PROFILING
     uint64_t ticks;
@@ -124,11 +124,11 @@ typedef struct _OptTreeNode
     uint64_t ppm_suspend_time; /* PPM */
     uint64_t ppm_disable_cnt; /*PPM */
 
-    uint32_t num_detection_opts;
+    uint32_t num_detection_opts;          /* 选项关键字计数 */
 
     /**unique index generated in ruleIndexMap.
      */
-    int ruleIndex;
+    int ruleIndex;                        /* 规则索引，由解析顺序决定 */
 
     /* List of preprocessor registered fast pattern contents */
     void *preproc_fp_list;
@@ -148,23 +148,24 @@ typedef struct _RuleFpList
     struct _RuleFpList *next;
 } RuleFpList;
 
+/* 规则头解析结果；分开规则头和规则选项，为了最大限度的节省内存 */
 typedef struct _RuleTreeNode
 {
-    RuleFpList *rule_func; /* match functions.. (Bidirectional etc.. ) */
+    RuleFpList *rule_func; /* 匹配函数，IP、端口匹配，match functions.. (Bidirectional etc.. ) */
 
-    int head_node_number;
+    int head_node_number;  /* 分配顺序，在链表中的位置？ */
 
-    RuleType type;
+    RuleType type;         /* 规则类型，RULE_TYPE__ALERT，对应规则动作 */
 
-    IpAddrSet *sip;
-    IpAddrSet *dip;
+    IpAddrSet *sip;        /* 对应的源IP解析结果 */
+    IpAddrSet *dip;        /* 对应的目的IP解析结果 */
 
-    int proto;
+    int proto;             /* 协议类型，IPPROTO_TCP */
 
     PortObject * src_portobject;
     PortObject * dst_portobject;
 
-    uint32_t flags;     /* control flags */
+    uint32_t flags;        /* 控制标识，ANY_SRC_IP、BIDIRECTIONAL等 */
 
     /* stuff for dynamic rules activation/deactivation */
     int active_flag;
@@ -182,12 +183,12 @@ typedef struct _RuleTreeNode
     /**points to global parent RTN list (Drop/Alert) which contains this 
      * RTN.
      */
-    struct _ListHead *listhead;
+    struct _ListHead *listhead;    /* 指向SnortConfig->Alert等 */
 
     /**reference count from otn. Multiple OTNs can reference this RTN with the same
      * policy.
      */
-    unsigned int otnRefCount;
+    unsigned int otnRefCount;      /* 被规则选项引用的次数 */
 
 } RuleTreeNode;
 

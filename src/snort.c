@@ -293,9 +293,9 @@ const struct timespec packet_sleep = { 0, 1 };
 extern void pcap_lex_destroy(void);
 #endif
 
-PreprocConfigFuncNode *preproc_config_funcs = NULL;
+PreprocConfigFuncNode *preproc_config_funcs = NULL;           /* 预处理插件 */
 OutputConfigFuncNode *output_config_funcs = NULL;             /* 输出插件，管控各级别及各种输出行为 */
-RuleOptConfigFuncNode *rule_opt_config_funcs = NULL;
+RuleOptConfigFuncNode *rule_opt_config_funcs = NULL;          /* 规则选项的处理插件 */
 RuleOptOverrideInitFuncNode *rule_opt_override_init_funcs = NULL;
 RuleOptParseCleanupNode *rule_opt_parse_cleanup_list = NULL;
 RuleOptByteOrderFuncNode *rule_opt_byte_order_funcs = NULL;
@@ -2589,8 +2589,9 @@ static void ParseCmdLine(int argc, char **argv)
             case 'B':  /* obfuscate with a substitution mask */
                 ConfigObfuscationMask(sc, optarg);
                 break;
-            
-            case 'c':  /* 指定了配置文件，use configuration file x */
+                
+            /* 指定配置文件 */
+            case 'c':  /* use configuration file x */
                 sc->run_mode_flags |= RUN_MODE_FLAG__IDS;
                 snort_conf_file = SnortStrdup(optarg);
                 break;
@@ -3132,7 +3133,7 @@ static void ParseCmdLine(int argc, char **argv)
         ParseOutput(sc, NULL, "log_tcpdump");
     }
 
-    /* 根据运行模式，设定日志函数 */
+    /* 根据运行模式，设定报文打印方式 */
     switch ( snort_conf->run_mode )
     {
         case RUN_MODE__IDS:

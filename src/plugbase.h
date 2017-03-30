@@ -258,18 +258,19 @@ typedef struct _PreprocStatsFuncNode
 
 } PreprocStatsFuncNode;
 
+/* 预处理执行函数 */
 typedef struct _PreprocEvalFuncNode
 {
-    void *context;
-    uint16_t priority;
-    uint32_t preproc_id;
-    PreprocEnableMask preproc_bit;
-    uint32_t proto_mask;
+    void *context;                  /**/
+    uint16_t priority;              /* PRIORITY_APPLICATION */
+    uint32_t preproc_id;            /* PP_HTTPINSPECT */
+    PreprocEnableMask preproc_bit;  /* 1<<PP_HTTPINSPECT */
+    uint32_t proto_mask;            /* PROTO_BIT__TCP */
     union
     {
         PreprocEvalFunc fptr;
         void *void_fptr;
-    } fptr;
+    } fptr;                         /* 函数指针 */
     struct _PreprocEvalFuncNode *next;
 
 } PreprocEvalFuncNode;

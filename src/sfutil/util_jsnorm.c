@@ -90,7 +90,7 @@ typedef enum {
     ACT_UNESCAPE
 } ActionJSNorm;
 
-int hex_lookup[256];
+int hex_lookup[256];                /* 合法json字串的ascii码 */
 int valid_chars[256];
 
 char decoded_out[6335];
@@ -383,14 +383,14 @@ void InitJSNormLookupTable(void)
 
     iNum = 0;
 
-    for(iCtr = 48; iCtr < 56; iCtr++)
+    for(iCtr = 48; iCtr < 56; iCtr++)      /* 0~7 */
     {
         hex_lookup[iCtr] = iNum;
         valid_chars[iCtr] = (IS_HEX|IS_OCT|IS_DEC);
         iNum++;
     }
 
-    for(iCtr = 56; iCtr < 58; iCtr++)
+    for(iCtr = 56; iCtr < 58; iCtr++)      /* 8~9 */
     {
         hex_lookup[iCtr] = iNum;
         valid_chars[iCtr] = (IS_HEX|IS_DEC);
@@ -398,7 +398,7 @@ void InitJSNormLookupTable(void)
     }
 
     iNum = 10;
-    for(iCtr = 65; iCtr < 71; iCtr++)
+    for(iCtr = 65; iCtr < 71; iCtr++)      /* A~F */
     {
         valid_chars[iCtr] = IS_HEX;
         hex_lookup[iCtr] = iNum;
@@ -406,7 +406,7 @@ void InitJSNormLookupTable(void)
     }
 
     iNum = 10;
-    for(iCtr = 97; iCtr < 103; iCtr++)
+    for(iCtr = 97; iCtr < 103; iCtr++)     /* a~f */
     {
         valid_chars[iCtr] = IS_HEX;
         hex_lookup[iCtr] = iNum;

@@ -123,7 +123,7 @@ extern int file_line;
 **  the user configuration must be kept between the Init function
 **  the actual preprocessor.  There is no interaction between the
 **  two except through global variable usage.
-*/
+*//* 存放配置指令preprocessor http_inspect的解析结果 */
 tSfPolicyUserContextId hi_config = NULL;
 
 #ifdef TARGET_BASED
@@ -153,10 +153,10 @@ uint8_t dechunk_buffer[65535];
 MemPool *http_mempool = NULL;
 MemPool *mime_decode_mempool = NULL;
 MemPool *mime_log_mempool = NULL;
-int hex_lookup[256];
-int valid_lookup[256];
+int hex_lookup[256];                   /* 16进制对应的ascii码 */
+int valid_lookup[256];                 /* 有效的ascii码范围 */
 
-char** xffFields = NULL;
+char** xffFields = NULL;               /* XFF的配置，用于监控代理 */
 static char** oldXffFields = NULL;
 
 /*
@@ -208,7 +208,7 @@ static void HttpInspectReloadSwapFree(void *);
 **  packet.
 **
 **  @return void
-*/
+*//* http_inspect指令预处理入口 */
 static void HttpInspect(Packet *p, void *context)
 {
     tSfPolicyId policy_id = getNapRuntimePolicy();
@@ -512,9 +512,9 @@ static void CheckMemcap(HTTPINSPECT_GLOBAL_CONF *pPolicyConfig,
 **  @param args a string to the preprocessor arguments.
 **
 **  @return void
-*/
+*//* 初始化http涉及的插件 */
 static void HttpInspectInit(struct _SnortConfig *sc, char *args)
-{
+{/* args格式"global iis_unicode_map unicode.map 1252 compress_depth 65535 decompress_depth 65535" */
     char ErrorString[ERRSTRLEN];
     int  iErrStrLen = ERRSTRLEN;
     int  iRet;
@@ -535,6 +535,7 @@ static void HttpInspectInit(struct _SnortConfig *sc, char *args)
                    __FILE__, __LINE__);
     }
 
+    /* 分配代理相关xff内存 */
     if (!xffFields)
     {
         if ((xffFields = calloc(1, HTTP_MAX_XFF_FIELDS * sizeof(char *))) == NULL)
@@ -544,6 +545,7 @@ static void HttpInspectInit(struct _SnortConfig *sc, char *args)
         }
     }
 
+    /* http inspect配置存储结构 */
     if (hi_config == NULL)
     {
         hi_config = sfPolicyConfigCreate();
@@ -578,7 +580,7 @@ static void HttpInspectInit(struct _SnortConfig *sc, char *args)
 
 #endif
         hi_paf_init(0);  // FIXTHIS is cap needed?
-        HI_SearchInit();
+        HI_SearchInit(); /* AC引擎初始化 */
     }
 
     /*
@@ -612,6 +614,7 @@ static void HttpInspectInit(struct _SnortConfig *sc, char *args)
                                                  ErrorString, iErrStrLen);
         if (iRet == 0)
         {
+            /* 解析配置项 */
             iRet = ProcessGlobalConf(pPolicyConfig,
                                      ErrorString, iErrStrLen);
 
@@ -624,6 +627,7 @@ static void HttpInspectInit(struct _SnortConfig *sc, char *args)
                 /* Add HttpInspect into the preprocessor list */
                 if ( pPolicyConfig->disabled )
                     return;
+                /* 注册处理函数 */
                 AddFuncToPreprocList(sc, HttpInspect, PRIORITY_APPLICATION, PP_HTTPINSPECT, PROTO_BIT__TCP);
             }
         }
@@ -708,8 +712,8 @@ static void HttpInspectInit(struct _SnortConfig *sc, char *args)
 void SetupHttpInspect(void)
 {
 #ifndef SNORT_RELOAD
-    RegisterPreprocessor(GLOBAL_KEYWORD, HttpInspectInit);
-    RegisterPreprocessor(SERVER_KEYWORD, HttpInspectInit);
+    RegisterPreprocessor(GLOBAL_KEYWORD, HttpInspectInit);  /* http_inspect */
+    RegisterPreprocessor(SERVER_KEYWORD, HttpInspectInit);  /* http_inspect_server */
 #else
     RegisterPreprocessor(GLOBAL_KEYWORD, HttpInspectInit, HttpInspectReloadGlobal,
                          HttpInspectReloadVerify, HttpInspectReloadSwap,
@@ -720,8 +724,8 @@ void SetupHttpInspect(void)
 #ifdef DUMP_BUFFER
     RegisterBufferTracer(getHTTPDumpBuffers, HTTP_BUFFER_DUMP_FUNC);
 #endif
-    InitLookupTables();
-    InitJSNormLookupTable();
+    InitLookupTables();                 /* 初始化16进制字符对应的ascii码 */
+    InitJSNormLookupTable();            /* 初始化json字串的合理范围 */
     (void)File_Decomp_OneTimeInit();
 
     DEBUG_WRAP(DebugMessage(DEBUG_HTTPINSPECT, "Preprocessor: HttpInspect is "
@@ -1856,7 +1860,7 @@ static inline void InitLookupTables(void)
     memset(valid_lookup, INVALID_HEX_VAL, sizeof(valid_lookup));
 
     iNum = 0;
-    for(iCtr = 48; iCtr < 58; iCtr++)
+    for(iCtr = 48; iCtr < 58; iCtr++)   /* 0~9 */
     {
         hex_lookup[iCtr] = iNum;
         valid_lookup[iCtr] = HEX_VAL;
@@ -1867,7 +1871,7 @@ static inline void InitLookupTables(void)
     * Set the upper case values.
     */
     iNum = 10;
-    for(iCtr = 65; iCtr < 71; iCtr++)
+    for(iCtr = 65; iCtr < 71; iCtr++)   /* A~F */
     {
         hex_lookup[iCtr] = iNum;
         valid_lookup[iCtr] = HEX_VAL;
@@ -1878,7 +1882,7 @@ static inline void InitLookupTables(void)
      *  Set the lower case values.
      */
     iNum = 10;
-    for(iCtr = 97; iCtr < 103; iCtr++)
+    for(iCtr = 97; iCtr < 103; iCtr++)  /* a~f */
     {
         hex_lookup[iCtr] = iNum;
         valid_lookup[iCtr] = HEX_VAL;

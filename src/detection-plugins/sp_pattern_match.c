@@ -195,6 +195,7 @@ void SetupPatternMatch(void)
                 "Plugin: PatternMatch Initialized!\n"););
 }
 
+/* 规则选项content关键字解析处理入口 */
 static void PayloadSearchInit(struct _SnortConfig *sc, char *data, OptTreeNode * otn, int protocol)
 {
     OptFpList *fpl;
@@ -207,23 +208,24 @@ static void PayloadSearchInit(struct _SnortConfig *sc, char *data, OptTreeNode *
 
     DEBUG_WRAP(DebugMessage(DEBUG_PATTERN_MATCH, "In PayloadSearchInit()\n"););
 
-    /* whack a new node onto the list */
+    /* 创建新匹配节点，whack a new node onto the list */
     pmd = NewNode(otn, PLUGIN_PATTERN_MATCH);
     lastType = PLUGIN_PATTERN_MATCH;
 
     if (!data)
         ParseError("No Content Pattern specified!");
 
+    /* 提取content的规则串，去掉头尾引号 */
     data_dup = SnortStrdup(data);
     data_end = data_dup + strlen(data_dup);
 
     opt_data = PayloadExtractParameter(data_dup, &opt_len);
 
-    /* set up the pattern buffer */
+    /* 解析规则串，set up the pattern buffer */
     ParsePattern(opt_data, otn, PLUGIN_PATTERN_MATCH);
     next_opt = opt_data + opt_len;
 
-    /* link the plugin function in to the current OTN */
+    /* 添加匹配函数，link the plugin function in to the current OTN */
     fpl = AddOptFuncToList(CheckANDPatternMatch, otn);
     fpl->type = RULE_OPTION_TYPE_CONTENT;
     pmd->buffer_func = CHECK_AND_PATTERN_MATCH;
@@ -234,6 +236,7 @@ static void PayloadSearchInit(struct _SnortConfig *sc, char *data, OptTreeNode *
     // if content is followed by any comma separated options,
     // we have to parse them here.  content related options
     // separated by semicolons go straight to the callbacks.
+    /* 处理关键字选项 */
     while (next_opt < data_end)
     {
         char **opts;        /* dbl ptr for mSplit call, holds rule tokens */
@@ -1601,7 +1604,7 @@ static unsigned int GetMaxJumpSize(char *data, int data_len)
 }
 
 /****************************************************************************
- *
+ * 解析规则字符串，并加入到对应的规则中；方便被后续引擎使用
  * Function: ParsePattern(char *)
  *
  * Purpose: Process the application layer patterns and attach them to the
@@ -1886,12 +1889,15 @@ void ParsePattern(char *rule, OptTreeNode * otn, int type)
     while(ds_idx->next != NULL)
         ds_idx = ds_idx->next;
 
+    /* 记录正则字符串 */
     ds_idx->pattern_buf = (char *)SnortAlloc(dummy_size+1);
     memcpy(ds_idx->pattern_buf, tmp_buf, dummy_size);
 
     ds_idx->pattern_size = dummy_size;
+    /* 查找函数 */
     ds_idx->search = uniSearch;
 
+    /* BM算法预处理 */
     make_precomp(ds_idx);
     ds_idx->exception_flag = exception_flag;
 
@@ -2479,6 +2485,7 @@ static int uniSearchReal(const char *data, int dlen, PatternMatchData *pmd, int 
     return success;
 }
 
+/* 字符串匹配入口 */
 int CheckANDPatternMatch(void *option_data, Packet *p)
 {
     int rval = DETECTION_OPTION_NO_MATCH;
@@ -2553,6 +2560,7 @@ int CheckANDPatternMatch(void *option_data, Packet *p)
 
     doe_buf_flags = DOE_BUF_STD;
 
+    /* 调用uniSearch()函数 */
 #ifndef NO_FOUND_ERROR
     if( p->dsize != 0 )
     {

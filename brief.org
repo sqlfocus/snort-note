@@ -6,18 +6,121 @@
 快速规则匹配引擎，并借此丰富安全领域常识。
 
 * 代码导读
+snort采用插件方式组织报文解码、规则引擎、日志输出；既抽离出核心代码，便
+于维护，又可方便继承第三方插件，利于扩展。
  #+BEGIN_EXAMPLE
  -main()                               ~/src/snort.c
-   -SnortInit()
-   -PacketLoop()
+   -SnortInit()                        初始化，解析配置
+     -ParseCmdLine()                       解析命令行
+     -RegisterOutputPlugins()              注册
+     -RegisterPreprocessors()
+     -RegisterRuleOptions()
+     -ParseSnortConf()                     解析配置文件(不包含规则)，并合并命令行解析结果
+     -MergeSnortConfs()
+     -LoadDynamicPlugins()                 加载
+     -ConfigureOutputPlugins()
+     -ConfigurePreprocessors()
+     -InitDynamicEngines()
+     -InitDynamicPreprocessors()
+     -ConfigurePreprocessors()
+     -ParseRules()                         解析配置文件规则
+     -InitDynamicDetectionPlugins()
+     -fpCreateFastPacketDetection()        构建快速匹配检测引擎(规则以协议＋端口分组)
+       -fpCreatePortGroups()
+       -fpCreateRuleMaps()
+   -PacketLoop()                       包处理入口
      -PacketCallback()
        -ProcessPacket()
-         -grinder()                    解码
+         -grinder()                        解码
          -Preprocess()
            -Detect()
-             -fpEvalPacket()           过规则，~/src/fpdetect.c
+             -fpEvalPacket()               过规则，~/src/fpdetect.c
          -log_func()
-     -SnortIdle()
+     -SnortIdle()                          处理间隙
+ #+END_EXAMPLE
+
+** 输出插件
+输出插件用于构建输出日志，日志非常重要，不但要易于阅读、快速处理，还
+要支撑多进程、线程操作；阅读"alert_syslog"插件代码，关注实现，为后续
+自研发日志程序拓展思路。
+ #+BEGIN_EXAMPLE
+ -RegisterOutputPlugins()              注册"alert_syslog"，~/src/plugbase.c
+   -AlertSyslogSetup()                   ~/src/output-plugins/spo_alert_syslog.c
+     -RegisterOutputPlugin()             注册到全局链表output_config_funcs
+                                           关键字："alert_syslog"
+                                           类型标志：OUTPUT_TYPE_FLAG__ALERT
+                                           初始化函数：AlertSyslogInit
+ -ParseSnortConf()                     解析配置文件关键字output，存储解析结果
+   -ParseConfigFile()                    到SnortConfig->output_configs[]
+     -ParseOutput()                      ~/src/parser.c
+ -ConfigureOutputPlugins()             初始化，加载
+   -AlertSyslogInit()                    ~/src/output-plugins/spo_alert_syslog.c
+     -openlog()                          根据配置，打开syslog日志
+     -AddFuncToOutputList()              将AlertSyslog()加入AlertList链表
+ #+END_EXAMPLE
+
+ #+BEGIN_EXAMPLE
+ 调用流程
+ -ActivateAction()
+ -AlertAction()
+ -DropAction()                         主动作函数，调用日志输出的点
+   -CallAlertFuncs()                     ~/src/detect.c
+     -CallAlertPlugins()                 遍历AlertList，调用对应的OutputFuncNode->func()
+       -AlertSyslog()                    具体执行函数
+         -syslog()
+ #+END_EXAMPLE
+
+** 预处理插件
+预处理插件运行于规则引擎之前，用于规则匹配所需数据的构建，如报文重组、
+流处理、变量提取等；阅读"http_inspect"插件代码，以助于了解。
+ #+BEGIN_EXAMPLE
+ -RegisterPreprocessors()              注册"http_inspect"，~/src/plugbase.c
+   -SetupHttpInspect()                   ~/src/preprocessors/spp_httpinspect.c
+     -RegisterPreprocessor()             注册到全局链表preproc_config_funcs
+                                           关键字："http_inspect"
+                                           初始化函数：HttpInspectInit
+ -ParseSnortConf()                     解析配置文件关键字preprocessor，存储解析结果
+   -ParseConfigFile()                    到SnortPolicy->preproc_configs[]
+     -ParsePreprocessor()                ~/src/parser.c
+ -ConfigurePreprocessors()             初始化，加载
+   -HttpInspectInit()                    ~/src/preprocessors/spp_httpinspect.c
+     -ProcessGlobalConf()
+     -AddFuncToPreprocList()             注册处理函数HttpInspect()到
+                                         SnortPolicy->preproc_eval_funcs[]
+ #+END_EXAMPLE
+
+ #+BEGIN_EXAMPLE
+ -ProcessPacket()
+   -Preprocess()                       预处理
+     -DispatchPreprocessors()            分发，~/src/detect.c
+       -HttpInspect()                    具体执行，~/src/preprocessors/spp_httpinspect.c
+ #+END_EXAMPLE
+
+** 规则引擎
+规则引擎用于匹配报文内容，阅读"content"代码，以助于理解。
+ #+BEGIN_EXAMPLE
+ -RegisterRuleOptions()                注册"content"，~/src/plugbase.c
+   -SetupPatternMatch()                  ~/src/detection-plugins/sp_pattern_match.c
+     -RegisterRuleOption()               注册到全局链表rule_opt_config_funcs
+                                           关键字："content"
+                                           类型：OPT_TYPE_DETECTION
+                                           初始化函数：PayloadSearchInit
+ -ParseRules()                         解析规则，以"alert"为例
+   -ParseConfigFile()
+     -ParseAlert()                       ~/src/parser.c
+       -ParseRule()
+         -ProcessHeadNode()
+         -ParseRuleOptions()             提取选项关键字，并调用对应的处理函数
+           -PayloadSearchInit()          "content"关键字解析，~/src/detection-plugins/sp_pattern_match.c
+             -ParsePattern()                解析匹配串
+             -AddOptFuncToList()            添加匹配函数CheckANDPatternMatch()，到OptTreeNode->opt_func
+         -FinishPortListRule()           以端口对象组织规则，使得报文仅匹配对应端口的规则集，提升性能
+ -Detect()
+   -fpEvalPacket()                     过规则，~/src/fpdetect.c
+     -fpEvalHeaderTcp()
+       -prmFindRuleGroupTcp()            查找需要匹配的子规则集
+       -fpEvalHeaderSW()                 规则
+       -fpFinalSelectEvent()             触发事件告警
  #+END_EXAMPLE
 
 * 参考

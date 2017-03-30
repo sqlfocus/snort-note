@@ -44,9 +44,9 @@ typedef enum _modes {
 
 /* Used by the "list" mode.  A doubly linked list of sfcidr_t objects. */
 typedef struct _ip_node {
-    sfcidr_t *ip;
+    sfcidr_t *ip;          /* IP地址，网络序字节码 */
     struct _ip_node *next;
-    int flags;
+    int flags;             /* 标志，SFIP_NEGATED/SFIP_ANY */
                     // XXX
     int addr_flags; /* Flags used exlusively by Snort */
                     /* Keeping these variables seperate keeps
@@ -58,11 +58,11 @@ typedef struct _ip_node {
 typedef struct _var_t {
     /* Selects whether or not to use the list, the table,
      * or any other method added later */
-    MODES mode;
+    MODES mode;              /* */
 
     /* Linked lists.  Switch to something faster later */
-    sfip_node_t *head;
-    sfip_node_t *neg_head;
+    sfip_node_t *head;       /* 正常的ip配置 */
+    sfip_node_t *neg_head;   /* 非逻辑的ip配置 */
 
     /* The mode above will select whether to use the sfip_node_t linked list
      * or the IP routing table */
@@ -72,8 +72,8 @@ typedef struct _var_t {
     struct _var_t *next;
 
     uint32_t id;
-    char *name;
-    char *value;
+    char *name;              /* 名 */
+    char *value;             /* */
 } sfip_var_t;
 
 /* A variable table for storing and looking up variables */

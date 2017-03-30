@@ -135,8 +135,8 @@ const HiSearchToken html_patterns[] =
     {NULL,               0, 0}
 };
 
-void *hi_javascript_search_mpse = NULL;
-void *hi_htmltype_search_mpse = NULL;
+void *hi_javascript_search_mpse = NULL;   /* js脚本字段搜索引擎 */
+void *hi_htmltype_search_mpse = NULL;     /* html内置脚本字段搜索引擎 */
 HISearch hi_js_search[HI_LAST];
 HISearch hi_html_search[HTML_LAST];
 HISearch *hi_current_search = NULL;
@@ -686,7 +686,7 @@ static int ProcessDecompressDepth(HTTPINSPECT_GLOBAL_CONF *GlobalConf,
 **  @retval  0 successs
 **  @retval -1 generic fatal error
 **  @retval  1 generic non-fatal error
-*/
+*//* http_inspect预处理配置指令的解析入口 */
 int ProcessGlobalConf(HTTPINSPECT_GLOBAL_CONF *GlobalConf,
                       char *ErrorString, int ErrStrLen)
 {
@@ -4952,9 +4952,11 @@ int GetHttpHostnameData(void *data, uint8_t **buf, uint32_t *len, uint32_t *type
     return 0;
 }
 
+/* http inspect搜索AC引擎初始化 */
 void HI_SearchInit(void)
 {
     const HiSearchToken *tmp;
+    /* js标识字段搜索引擎初始化 */
     hi_javascript_search_mpse = search_api->search_instance_new();
     if (hi_javascript_search_mpse == NULL)
     {
@@ -4969,6 +4971,7 @@ void HI_SearchInit(void)
     }
     search_api->search_instance_prep(hi_javascript_search_mpse);
 
+    /* html内嵌脚本字段搜索引擎初始化 */
     hi_htmltype_search_mpse = search_api->search_instance_new();
     if (hi_htmltype_search_mpse == NULL)
     {

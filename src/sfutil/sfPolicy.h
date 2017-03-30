@@ -42,8 +42,8 @@ typedef struct
     /**number of vlans which are member of this group. When membership falls to 0, then this group should be deleted.
      */
     unsigned int refCount;
-    char *filename;             /* 配置文件名 */
-    unsigned int isConfigProcessed:1;
+    char *filename;                   /* 配置文件名 */
+    unsigned int isConfigProcessed:1; /* */
 
 } tSfPolicy;
 
@@ -61,11 +61,11 @@ typedef struct
 {
     /**group id assigned to each file name. The groupId is an abstract concept
      * to tie multiple vlans into one group. */
-    tSfPolicy **ppPolicies;        /* 跟踪配置文件相关信息 */
-    tSfPolicyId defaultPolicyId;   /* 生效的配置文件 */
+    tSfPolicy **ppPolicies;        /* 配置文件数组 */
+    tSfPolicyId defaultPolicyId;   /* 默认的主配置文件 */
     /**policy id of configuration file or packet being processed. */
-    tSfPolicyId numAllocatedPolicies;
-    unsigned int numActivePolicies;
+    tSfPolicyId numAllocatedPolicies;  /* ppPolicies[]分配的元素个数 */
+    unsigned int numActivePolicies;    /* ppPolicies[]已使用的元素个数 */
     /**vlan to policyId bindings. */
     tSfPolicyId vlanBindings[SF_VLAN_BINDING_MAX];
     /**policyId to policyId bindings. */

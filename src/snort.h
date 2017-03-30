@@ -312,29 +312,31 @@ typedef enum _GetOptLongIds
 
 } GetOptLongIds;
 
+/* 配置指令preprocessor解析结果 */
 typedef struct _PreprocConfig
-{
-    char *keyword;
-    char *opts;
-    char *file_name;
-    int file_line;
+{/* preprocessor normalize_tcp: block, rsv */
+    char *keyword;          /* normalize_tcp */
+    char *opts;             /* block, rsv */
+    char *file_name;        /* 所在配置文件 */
+    int file_line;          /* 所在行 */
     /* We have to configure internal and dynamic preprocessors separately,
      * mainly because of the stream_api which is set in stream5 and needs to
      * be set before calling the dynamic preprocessor initialization
      * functions which set _dpd and call the setup function.  streamAPI is set
      * in the _dpd so stream5 needs to be configured first */
-    int configured;
+    int configured;         /* */
     struct _PreprocConfig *next;
 
 } PreprocConfig;
 
+/* 配置指令output解析结果 */
 typedef struct _OutputConfig
-{
-    char *keyword;
-    char *opts;
-    char *file_name;
-    int file_line;
-    ListHead *rule_list;
+{/* output alert_syslog: LOG_AUTH LOG_ALERT */
+    char *keyword;         /* alert_syslog */
+    char *opts;            /* LOG_AUTH LOG_ALERT */
+    char *file_name;       /* */
+    int file_line;         /* */
+    ListHead *rule_list;   /* */
     struct _OutputConfig *next;
 
 } OutputConfig;
@@ -614,30 +616,30 @@ typedef struct _SnortPolicy
 #ifdef TARGET_BASED
     TargetBasedConfig target_based_config;
 #endif
-    PreprocConfig *preproc_configs;
+    PreprocConfig *preproc_configs; /* preprocessor配置指令解析结果 */
 
     VarEntry *var_table;            /* 记录配置变量 */
     uint32_t var_id;
     vartable_t *ip_vartable;        /* 记录IP变量 */
 
     /* The portobjects in these are attached to rtns and used during runtime */
-    PortVarTable *portVarTable;     /* named entries, uses a hash table */
+    PortVarTable *portVarTable;     /* 端口hash表，named entries, uses a hash table */
     PortTable *nonamePortVarTable;  /* un-named entries */
 
     PreprocEnableMask pp_enabled[MAX_PORTS];
-    PreprocEvalFuncNode *preproc_eval_funcs;
+    PreprocEvalFuncNode *preproc_eval_funcs;           /* 预处理执行函数列表 */
     PreprocEvalFuncNode *unused_preproc_eval_funcs;
     PreprocMetaEvalFuncNode *preproc_meta_eval_funcs;
 
-    int preproc_proto_mask;
-    int num_preprocs;
+    int preproc_proto_mask;                            /* 协议掩码 */
+    int num_preprocs;                                  /* 预处理函数个数 */
     int num_meta_preprocs;
     int ips_policy_mode;
     int nap_policy_mode;
     uint32_t policy_flags;
 
     /* mask of preprocessors that have registered runtime process functions */
-    PreprocEnableMask preproc_bit_mask;
+    PreprocEnableMask preproc_bit_mask;                /* 已注册的预处理函数标识掩码 */
     PreprocEnableMask preproc_meta_bit_mask;
 
     int num_detects;
@@ -682,9 +684,9 @@ typedef struct _SnortConfig
 {
     RunMode run_mode;            /* 运行模式 */
     int run_mode_flags;          /* */
-    int run_flags;
+    int run_flags;               /* 运行标志，RunFlag */
     int output_flags;
-    int logging_flags;           /* 日志模式 */
+    int logging_flags;           /* 日志模式，LoggingFlag */
     int log_tcpdump;
     int no_log;
     int no_alert;
@@ -704,7 +706,7 @@ typedef struct _SnortConfig
     uint64_t pkt_skip;
 #endif
 
-    char *dynamic_rules_path;       /* 输出加载的规则，--dump-dynamic-rules */
+    char *dynamic_rules_path;       /* 文件，盛放待导出的已加载规则，--dump-dynamic-rules */
 
     /* --dynamic-engine-lib
      * --dynamic-engine-lib-dir
@@ -722,10 +724,10 @@ typedef struct _SnortConfig
     DynamicLibInfo *dyn_side_channels;
 #endif
 
-    char pid_path[STD_BUF];  /* --pid-path or config pidpath */
+    char pid_path[STD_BUF];         /* --pid-path or config pidpath */
 
 #ifdef EXIT_CHECK
-    uint64_t exit_check;        /* --exit-check */
+    uint64_t exit_check;            /* --exit-check */
 #endif
 
     /* -h and -B */
@@ -836,7 +838,7 @@ typedef struct _SnortConfig
     uint32_t max_metadata_appid;
 #endif /* defined(FEAT_OPEN_APPID) */
 
-    OutputConfig *output_configs;
+    OutputConfig *output_configs;    /* 存放output配置指令解析结果 */
     OutputConfig *rule_type_output_configs;
     SFGHASH *config_table;   /* hash表，存储配置关键字及值，table of config keywords and arguments */
     int asn1_mem;
@@ -846,11 +848,11 @@ typedef struct _SnortConfig
     RuleState *rule_state_list;
     ClassType *classifications;
     ReferenceSystemNode *references;
-    SFGHASH *so_rule_otn_map;
-    SFGHASH *otn_map;
+    SFGHASH *so_rule_otn_map;       /* */
+    SFGHASH *otn_map;               /* 规则选项组成的hash表(OptTreeNode)，可以依此查找对应的规则头 */
     SFGHASH *preproc_rule_options;
 
-    FastPatternConfig *fast_pattern_config;
+    FastPatternConfig *fast_pattern_config;   /* 快速匹配引擎配置 */
     EventQueueConfig *event_queue_config;
 
     PreprocPostConfigFuncNode *preproc_post_config_funcs;
@@ -861,10 +863,10 @@ typedef struct _SnortConfig
     RateFilterConfig *rate_filter_config;
     DetectionFilterConfig *detection_filter_config;
 
-    SF_EVENTQ *event_queue[NUM_EVENT_QUEUES];
+    SF_EVENTQ *event_queue[NUM_EVENT_QUEUES]; /* 匹配结束后，产生的事件队列 */
 
     SF_LIST **ip_proto_only_lists;
-    uint8_t ip_proto_array[NUM_IP_PROTOS];
+    uint8_t ip_proto_array[NUM_IP_PROTOS];  /* 已配置规则的传输层协议，加速 */
 
     /* 规则类型列表，按照动作分类；三层链表结构 */
     int num_rule_types;          /* rule_lists[]数组大小 */
@@ -883,7 +885,7 @@ typedef struct _SnortConfig
 
     PostConfigFuncNode *plugin_post_config_funcs;
 
-    OTNX_MATCH_DATA *omd;
+    OTNX_MATCH_DATA *omd;   /* 逐包，匹配结果 */
 
     /* Pattern matcher queue statistics */
     unsigned int max_inq;
@@ -922,12 +924,12 @@ typedef struct _SnortConfig
     sopg_table_t *sopgTable;   /* service-oridnal to port_group table */
 #endif
 
-    SFXHASH *detection_option_hash_table;
+    SFXHASH *detection_option_hash_table; /* */
     SFXHASH *detection_option_tree_hash_table;
 
     tSfPolicyConfig *policy_config;       /* 配置文件信息 */
     SnortPolicy **targeted_policies;      /* 解析结果 */
-    unsigned int num_policies_allocated;
+    unsigned int num_policies_allocated;  /* */
 
     char *base_version;
 
@@ -959,7 +961,7 @@ typedef struct _SnortConfig
     PreprocessorSwapData *preprocSwapData;
     void *streamReloadConfig;
 #endif
-    tSfPolicyId parserPolicyId;             /* 正解析的配置文件 */
+    tSfPolicyId parserPolicyId;             /* 正解析的配置文件, policy_config[]索引 */
 #ifdef INTEL_SOFT_CPM
     struct _IntelPmHandles *ipm_handles;
 #endif
@@ -1160,8 +1162,8 @@ extern grinder_t grinder;
 extern pthread_mutex_t snort_process_lock;
 #endif
 
-extern OutputFuncNode *AlertList;
-extern OutputFuncNode *LogList;
+extern OutputFuncNode *AlertList;           /* alert日志函数指针链表 */
+extern OutputFuncNode *LogList;             /* log日志函数指针链表 */
 extern tSfActionQueueId decoderActionQ;
 
 /*  P R O T O T Y P E S  ******************************************************/

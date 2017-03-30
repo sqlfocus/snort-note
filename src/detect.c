@@ -238,6 +238,7 @@ int Preprocess(Packet * p)
         DetectReset(p->data, p->dsize);
 
         // ok, dispatch all preprocs enabled for this packet/session
+        /* 预处理 */
         DispatchPreprocessors( p, policy_id, policy );
 
         /* 过规则 */
@@ -477,6 +478,7 @@ void CallSigOutputFuncs(Packet *p, OptTreeNode *otn, Event *event)
     }
 }
 
+/* alert日志入口 */
 void CallAlertFuncs(Packet * p, const char *message, ListHead * head, Event *event)
 {
     OutputFuncNode *idx = NULL;

@@ -64,11 +64,12 @@ typedef struct _PatternMatchData
     int use_doe;            /* Use the doe_ptr for relative pattern searching */
     HTTP_BUFFER http_buffer;/* Index of the URI buffer */
     int buffer_func;        /* buffer function CheckAND or CheckUri */
-    u_int pattern_size;     /* size of app layer pattern */
+    u_int pattern_size;     /* pattern_buf长度，size of app layer pattern */
     u_int replace_size;     /* size of app layer replace pattern */
     char *replace_buf;      /* app layer pattern to replace with */
-    char *pattern_buf;      /* app layer pattern to match on */
+    char *pattern_buf;      /* 正则字符串，app layer pattern to match on */
     int (*search)(const char *, int, struct _PatternMatchData *);  /* search function */
+                            /* 查找函数 */
     int *skip_stride; /* B-M skip array */
     int *shift_stride; /* B-M shift array */
     u_int pattern_max_jump_size; /* Maximum distance we can jump to search for

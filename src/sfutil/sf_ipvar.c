@@ -435,6 +435,7 @@ static void _negate_lists(sfip_var_t *var)
     var->neg_head = temp;
 }
 
+/* 解析IP配置变量 */
 SFIP_RET sfvar_parse_iplist(vartable_t *table, sfip_var_t *var,
                            char *str, int negation)
 {
@@ -556,7 +557,7 @@ SFIP_RET sfvar_parse_iplist(vartable_t *table, sfip_var_t *var,
                 return SFIP_NOT_ANY;
             }
 
-            /* This should be an IP address! */
+            /* 存储对应的IP地址，This should be an IP address! */
             /* Allocate new node for this string and add it to "ret" */
             if((node = sfipnode_alloc(tok, &ret)) == NULL)
             {

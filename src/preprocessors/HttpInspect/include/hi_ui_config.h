@@ -254,7 +254,7 @@ typedef struct s_HTTPINSPECT_CONF
 **  configuration.  It contains the global aspects of the
 **  configuration, a standard global default configuration,
 **  and server configurations.
-*/
+*//* http_inspect预处理配置指令的解析结果 */
 typedef struct s_HTTPINSPECT_GLOBAL_CONF
 {
     int              disabled;

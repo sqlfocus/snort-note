@@ -351,7 +351,7 @@ static char po_print_buf[MAXPORTS];
 
 /*
     Create a new PortObject
-*/
+*//* 创建新端口对象 */
 PortObject * PortObjectNew(void)
 {
     PortObject *po = (PortObject *)SnortAlloc(sizeof(PortObject));

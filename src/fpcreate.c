@@ -3295,7 +3295,8 @@ static int fpCreateServicePortGroups(SnortConfig *sc)
 *
 *  Build Pattern Groups for 1st pass of content searching using
 *  multi-pattern search method.
-*/
+*//* 构建快速匹配检测引擎；基于端口对象的规则组织形式变更为基于端口的规则组
+     织形式，匹配更快速 */
 int fpCreateFastPacketDetection(SnortConfig *sc)
 {
     rule_port_tables_t *port_tables;

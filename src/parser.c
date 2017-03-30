@@ -354,11 +354,11 @@ typedef enum _VarType
 
 typedef struct _KeywordFunc
 {
-    char *name;
-    KeywordType type;
-    int expand_vars;
-    int default_policy_only;
-    ParseFunc parse_func;
+    char *name;               /* 关键字 */
+    KeywordType type;         /* 关键字作用范围 */
+    int expand_vars;          /* 替换变量为具体值 */
+    int default_policy_only;  /* 仅用于默认配置文件？ */
+    ParseFunc parse_func;     /* 解析函数 */
 
 } KeywordFunc;
 
@@ -445,8 +445,8 @@ int rule_count = 0;          /* number of rules generated */
 int detect_rule_count = 0;   /* number of detection rules generated */
 int decode_rule_count = 0;   /* number of decoder rules generated */
 int preproc_rule_count = 0;  /* number of preprocessor rules generated */
-int head_count = 0;          /* number of header blocks (chain heads?) */
-int otn_count = 0;           /* number of chains */
+int head_count = 0;          /* 规则头解析结果结构计数；number of header blocks (chain heads?) */
+int otn_count = 0;           /* 规则选项解析结果结构计数；number of chains */
 int dynamic_rule_count = 0;
 
 static port_list_t port_list;/* 配置文件的接口 */
@@ -456,7 +456,7 @@ static rule_count_t udpCnt;
 static rule_count_t icmpCnt;
 static rule_count_t ipCnt;
 
-rule_index_map_t *ruleIndexMap = NULL;   /* rule index -> sid:gid map */
+rule_index_map_t *ruleIndexMap = NULL;        /* 规则索引，与规则sid/gid的映射表；rule index -> sid:gid map */
 
 static tSfPolicyId currHeadNodePolicy = 0;
 static OptTreeNode *currHeadNodeOtn  = NULL;
@@ -583,6 +583,7 @@ static void ParseOtnTag(SnortConfig *, RuleTreeNode *,
 static void ParseOtnThreshold(SnortConfig *, RuleTreeNode *,
                               OptTreeNode *, RuleType, char *);
 
+/* 解析规则选项的处理函数 */
 static const RuleOptFunc rule_options[] =
 {
     { RULE_OPT__ACTIVATED_BY,     1, 1, 1, ParseOtnActivatedBy },
@@ -610,6 +611,7 @@ static void _ConfigProfilePreprocs(SnortConfig *, char *);
 static void _ConfigProfileRules(SnortConfig *, char *);
 #endif
 
+/* 对应config关键字的处理函数数组 */
 static const ConfigFunc config_opts[] =
 {
     { CONFIG_OPT__ALERT_FILE, 1, 1, 1, ConfigAlertFile },
@@ -888,7 +890,7 @@ static inline int ScLoadAsDropRules (void)
  *      An initialized and configured snort configuration struct.
  *      This struct should be passed on the second pass of the
  *      configuration file to parse the rules.
- *
+ * 解析配置文件入口
  ***************************************************************************/
 SnortConfig * ParseSnortConf(void)
 {
@@ -905,10 +907,10 @@ SnortConfig * ParseSnortConf(void)
 
     /* Setup the default rule action anchor points
      * Need to do this now in case we get a user defined rule type */
-    /* 注册规则类型 */
+    /* 注册规则类型，初始化规则三层结构的第一层 */
     CreateDefaultRules(sc);
 
-    /* 创建端口表，并加入"any"对象 */
+    /* 创建端口规则表，并加入"any"对象；此表以端口为单位组织规则 */
     sc->port_tables = PortTablesNew();
 
     mpseInitSummary();
@@ -974,7 +976,7 @@ SnortConfig * ParseSnortConf(void)
     if ( strcmp(file_name, NULL_CONF) )
         ParseConfigFile(sc, sc->targeted_policies[policy_id], file_name);
 
-    /* We've picked up any targeted policy configs at this point so
+    /* 解析其他配置文件，We've picked up any targeted policy configs at this point so
      * it's probably okay to parse them here */
     for (policy_id = 0;
          policy_id < sfPolicyNumAllocated(sc->policy_config);
@@ -1310,6 +1312,8 @@ static int FinishPortListRule(rule_port_tables_t *port_tables, RuleTreeNode *rtn
 #endif
     /* Select the Target PortTable for this rule, based on protocol, src/dst
      * dir, and if there is rule content */
+    /* 选择对应的端口表，以便构建基于端口的规则分类存放；以减少每报文
+       过规则的数量，提升性能 */
     if (proto == IPPROTO_TCP)
     {
         dstTable = port_tables->tcp_dst;
@@ -1421,6 +1425,8 @@ static int FinishPortListRule(rule_port_tables_t *port_tables, RuleTreeNode *rtn
      * any-any port rules...
      * If we have an any-any rule or a large port group or
      * were using a single rule group we make it an any-any rule. */
+    /* any-any规则加入到anyany端口对象；另外，端口过多的规则也加入其中；
+       如果仅使用单group(报文过所有规则，不以端口分类-group)，也加入其中 */
     if (((rtn->flags & (ANY_DST_PORT|ANY_SRC_PORT)) == (ANY_DST_PORT|ANY_SRC_PORT)) ||
         large_port_group || fpDetectGetSingleRuleGroup(fp))
     {
@@ -1482,6 +1488,7 @@ static int FinishPortListRule(rule_port_tables_t *port_tables, RuleTreeNode *rtn
     }
 
     /* add rule index to dst table if we have a specific dst port or port list */
+    /* 指定了目的端口的规则，加入对应的目的端口表 */
     if (!(rtn->flags & ANY_DST_PORT))
     {
         PortObject *pox;
@@ -1551,6 +1558,7 @@ static int FinishPortListRule(rule_port_tables_t *port_tables, RuleTreeNode *rtn
     }
 
     /* add rule index to src table if we have a specific src port or port list */
+    /* 指定了源端口的规则，加入到源端口表 */
     if (!(rtn->flags & ANY_SRC_PORT))
     {
         PortObject *pox;
@@ -1789,7 +1797,7 @@ int GetOtnIcmpType(OptTreeNode * otn )
  *   proto - protocol
  *   dst_flag - dst or src port flag, true = dst, false = src
  *
- */
+ *//* 解析规则端口的入口函数 */
 static int ParsePortList(RuleTreeNode *rtn, PortVarTable *pvt, PortTable *noname,
                          char *port_str, int proto, int dst_flag)
 {
@@ -2084,7 +2092,7 @@ static void PortToFunc(RuleTreeNode * rtn, int any_flag, int except_flag, int mo
  *      The preprocessor arguments.
  *
  * Returns: void function
- *
+ * 解析preprocessor命令关键字
  ***************************************************************************/
 static void ParsePreprocessor(SnortConfig *sc, SnortPolicy *p, char *args)
 {
@@ -2135,6 +2143,7 @@ static void ParsePreprocessor(SnortConfig *sc, SnortPolicy *p, char *args)
     mSplitFree(&toks, num_toks);
 }
 
+/* 加载preprocessor指令对应的支撑模块儿 */
 void ConfigurePreprocessors(SnortConfig *sc, int configure_dynamic)
 {
     char *stored_file_name = file_name;
@@ -2155,6 +2164,7 @@ void ConfigurePreprocessors(SnortConfig *sc, int configure_dynamic)
 
         config = sc->targeted_policies[i]->preproc_configs;
 
+        /* 所有解析目标，遍历其对应的preprocessor配置指令 */
         for (; config != NULL; config = config->next)
         {
             PreprocConfigFuncNode *node;
@@ -2165,6 +2175,7 @@ void ConfigurePreprocessors(SnortConfig *sc, int configure_dynamic)
             file_name = config->file_name;
             file_line = config->file_line;
 
+            /* 查找对应的模块儿 */
             node = GetPreprocConfig(config->keyword);
             if ((node == NULL) && configure_dynamic)
                 ParseError("Unknown preprocessor: \"%s\".", config->keyword);
@@ -2547,6 +2558,7 @@ static void ParseRuleTypeOutput(SnortConfig *sc, char *args, ListHead *list)
     mSplitFree(&toks, num_toks);
 }
 
+/* 解析output关键字 */
 void ParseOutput(SnortConfig *sc, SnortPolicy *p, char *args)
 {
     char **toks;
@@ -2783,6 +2795,7 @@ void ResolveOutputPlugins(SnortConfig *cmd_line, SnortConfig *config_file)
     }
 }
 
+/* 加载配置的日志输出功能模块儿 */
 void ConfigureOutputPlugins(SnortConfig *sc)
 {
     OutputConfig *config;
@@ -2791,6 +2804,7 @@ void ConfigureOutputPlugins(SnortConfig *sc)
 
     DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,"Output Plugin\n"););
 
+    /* 遍历output配置指令解析结果 */
     for (config = sc->output_configs; config != NULL; config = config->next)
     {
         OutputConfigFunc oc_func;
@@ -2798,10 +2812,12 @@ void ConfigureOutputPlugins(SnortConfig *sc)
         file_name = config->file_name;
         file_line = config->file_line;
 
+        /* 查找已注册的输出模块儿 */
         oc_func = GetOutputConfigFunc(config->keyword);
         if (oc_func == NULL)
             ParseError("Unknown output plugin: \"%s\"", config->keyword);
 
+        /* 初始化 */
         oc_func(sc, config->opts);
     }
 
@@ -2992,7 +3008,7 @@ static int mergeDuplicateOtn(SnortConfig *sc, OptTreeNode *otn_dup,
 
 
 /****************************************************************************
- *
+ * 解析规则选项的入口点
  * Function: ParseRuleOptions(char *, int)
  *
  * Purpose:  Process an individual rule's options and add it to the
@@ -3034,6 +3050,7 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
     /* Set the default rule state */
     otn->rule_state = ScDefaultRuleState();
 
+    /* 无规则选项 */
     if (rule_opts == NULL)
     {
         DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES, "No rule options.\n"););
@@ -3047,6 +3064,7 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
                                          otn->sigInfo.generator,
                                          otn->sigInfo.id);
     }
+    /* 规则选项解析 */
     else
     {
         char **toks;
@@ -3070,6 +3088,7 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
 
         toks = mSplit(rule_opts, ";", 0, &num_toks, '\\');
 
+        /* 遍历，逐个选项解析；第一层利用";"分隔，第二层利用":"分隔 */
         for (i = 0; i < num_toks; i++)
         {
             char **opts;
@@ -3090,6 +3109,7 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
                 DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,"   option args: %s\n", option_args););
             }
 
+            /* 内置规则选项项关键字 解析 */
             for (j = 0; rule_options[j].name != NULL; j++)
             {
                 if (strcasecmp(opts[0], rule_options[j].name) == 0)
@@ -3123,11 +3143,12 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
                 got_sid = 1;
             }
 
-            /* It's possibly a detection option plugin */
+            /* 自注册选项关键字 解析，It's possibly a detection option plugin */
             if (rule_options[j].name == NULL)
             {
                 RuleOptConfigFuncNode *dopt = rule_opt_config_funcs;
 
+                /* 内容关键字 */
                 for (; dopt != NULL; dopt = dopt->next)
                 {
                     if (strcasecmp(opts[0], dopt->keyword) == 0)
@@ -3153,6 +3174,7 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
                     }
                 }
 
+                /* 预处理关键字 */
                 if (dopt == NULL)
                 {
                     /* Maybe it's a preprocessor rule option */
@@ -3209,9 +3231,10 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
 
         DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,"OptListEnd\n"););
 
+        /* 关联规则头解析结果和规则选项解析结果 */
         addRtnToOtn(otn, getParserPolicy(sc), rtn);
 
-        /* Check for duplicate SID */
+        /* 建立规则ID(配置顺序)，与规则sid、gid的映射关联；Check for duplicate SID */
         otn_dup = OtnLookup(sc->otn_map, otn->sigInfo.generator, otn->sigInfo.id);
         if (otn_dup != NULL)
         {
@@ -3238,6 +3261,7 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
     otn->num_detection_opts += num_detection_opts;
     otn_count++;
 
+    /* 各类型规则统计计数 */
     if (otn->sigInfo.rule_type == SI_RULE_TYPE_DETECT)
     {
         detect_rule_count++;
@@ -3253,14 +3277,17 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
         preproc_rule_count++;
     }
 
+    /* 设定末端匹配函数 */
     fpl = AddOptFuncToList(OptListEnd, otn);
     fpl->type = RULE_OPTION_TYPE_LEAF_NODE;
 
+    /* 执行预设定的处理函数 */
     if (otn_handler != NULL)
     {
         otn_handler(sc, otn);
     }
 
+    /* */
     FinalizeContentUniqueness(sc, otn);
     ValidateFastPattern(otn);
 
@@ -3295,7 +3322,7 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
         thdx_tmp = NULL;
     }
 
-    /* setup gid,sid->otn mapping */
+    /* 加入搜索hash表，setup gid,sid->otn mapping */
     SoRuleOtnLookupAdd(sc->so_rule_otn_map, otn);
     OtnLookupAdd(sc->otn_map, otn);
 
@@ -3341,7 +3368,7 @@ static int GetRuleProtocol(char *proto_str)
     return -1;
 }
 
-
+/* 解析IP地址入口 */
 static int ProcessIP(SnortConfig *sc, char *addr, RuleTreeNode *rtn, int mode, int neg_list)
 {
     vartable_t *ip_vartable = sc->targeted_policies[getParserPolicy(sc)]->ip_vartable;
@@ -3353,7 +3380,7 @@ static int ProcessIP(SnortConfig *sc, char *addr, RuleTreeNode *rtn, int mode, i
      * contents to the IP variable (IP list) stored with the rtn.
      * This code tries to look up the variable, and if found, will copy it
      * to the rtn->{sip,dip} */
-    if(mode == SRC)
+    if(mode == SRC)                  /* 源IP */
     {
         int ret;
 
@@ -3370,6 +3397,7 @@ static int ProcessIP(SnortConfig *sc, char *addr, RuleTreeNode *rtn, int mode, i
             }
             else
             {
+                /* 解析，并记录 */
                 rtn->sip = (sfip_var_t *)SnortAlloc(sizeof(sfip_var_t));
                 ret = sfvt_add_to_var(ip_vartable, rtn->sip, addr);
             }
@@ -3408,7 +3436,7 @@ static int ProcessIP(SnortConfig *sc, char *addr, RuleTreeNode *rtn, int mode, i
         }
     }
     /* mode == DST */
-    else
+    else                     /* 目的IP */
     {
         int ret;
 
@@ -3745,7 +3773,7 @@ static int TestHeader(RuleTreeNode * rule, RuleTreeNode * rtn)
  *  examples:
  *  portvar http [80,8080,8138,8700:8800,!8711]
  *  portvar http $http_basic
- */
+ *//* 解析定义的端口配置 */
 static int PortVarDefine(SnortConfig *sc, char *name, char *s)
 {
     PortObject *po;
@@ -3756,8 +3784,10 @@ static int PortVarDefine(SnortConfig *sc, char *name, char *s)
     char *end;
     bool invalidvar = true;
 
+    /* 不同类型变量，重名检测 */
     DisallowCrossTableDuplicateVars(sc, name, VAR_TYPE__PORTVAR);
 
+    /* 合法性检测 */
     for(end = name; *end && !isspace((int)*end) && *end != '\\'; end++)
     {
        if(isalpha((int)*end))
@@ -3767,6 +3797,7 @@ static int PortVarDefine(SnortConfig *sc, char *name, char *s)
     if(invalidvar)
 	ParseError("Can not define variable name - %s. Use different name", name);
 
+    /* 特殊端口值any */
     if( SnortStrcasestr(s,strlen(s),"any") ) /* this allows 'any' or '[any]' */
     {
         if(strstr(s,"!"))
@@ -3774,17 +3805,17 @@ static int PortVarDefine(SnortConfig *sc, char *name, char *s)
             ParseError("Illegal use of negation and 'any': %s.", s);
         }
 
-        po = PortObjectNew();
+        po = PortObjectNew();            /* 新建端口对象 */
         if( !po )
         {
             ParseError("PortVarTable missing an 'any' variable.\n");
         }
-        PortObjectSetName( po, name );
-        PortObjectAddPortAny( po );
+        PortObjectSetName( po, name );   /* 设置对象名 */
+        PortObjectAddPortAny( po );      /* 加入any成员 */
     }
     else
     {
-        /* Parse the Port List info into a PortObject  */
+        /* 解析，Parse the Port List info into a PortObject  */
         po = PortObjectParseString(portVarTable, &pop, name, s, 0);
         if(!po)
         {
@@ -3794,7 +3825,7 @@ static int PortVarDefine(SnortConfig *sc, char *name, char *s)
         }
     }
 
-    /* Add The PortObject to the PortList Table */
+    /* 加入端口hash表，键端口变量名，值解析结果指针，Add The PortObject to the PortList Table */
     rstat = PortVarTableAdd(portVarTable, po);
     if( rstat < 0 )
     {
@@ -3805,7 +3836,7 @@ static int PortVarDefine(SnortConfig *sc, char *name, char *s)
         ParseMessage("PortVar '%s', already defined.", po->name);
     }
 
-    /* Print the PortList - PortObjects */
+    /* 打印解析结果，Print the PortList - PortObjects */
     LogMessage("PortVar '%s' defined : ",po->name);
     PortObjectPrintPortsRaw(po);
     LogMessage("\n");
@@ -3995,7 +4026,7 @@ static int VarIsIpList(vartable_t *ip_vartable, char *value)
  *                        The corresponding variable table will not be searched.
  *
  * Returns: void function
- *
+ * 变量名不能在不同类型之间共享，如某个端口变量和某个IP变量不能使用相同的名字
  ***************************************************************************/
 static void DisallowCrossTableDuplicateVars(SnortConfig *sc, char *name, VarType var_type)
 {
@@ -5887,7 +5918,7 @@ static void InitParser(void)
     memset(config_opt_configured, 0, sizeof(config_opt_configured));
 }
 
-/* 解析规则的入口 */
+/* 规则解析入口 */
 void ParseRules(SnortConfig *sc)
 {
     tSfPolicyId policy_id;
@@ -5906,13 +5937,12 @@ void ParseRules(SnortConfig *sc)
      * we're parsing rules or not - see ParseConfigFile */
     parse_rules = 1;
 
-    /* Set to default policy */
+    /* 解析默认配置文件，Set to default policy */
     policy_id = sfGetDefaultPolicy(sc->policy_config);
     setParserPolicy(sc, policy_id);
-
     ParseConfigFile(sc, sc->targeted_policies[policy_id], snort_conf_file);
 
-    /* Parse rules in targeted policies */
+    /* 解析其他配置文件，Parse rules in targeted policies */
     for (policy_id = 0;
          policy_id < sfPolicyNumAllocated(sc->policy_config);
          policy_id++)
@@ -5971,6 +6001,7 @@ void ParseRules(SnortConfig *sc)
     file_line = 0;
 }
 
+/* 解析include命令关键字 */
 static void ParseInclude(SnortConfig *sc, SnortPolicy *p, char *arg)
 {
     struct stat file_stat;  /* for include path testing */
@@ -6009,6 +6040,7 @@ static void ParseInclude(SnortConfig *sc, SnortPolicy *p, char *arg)
                                 "and parsing %s\n", file_name););
     }
 
+    /* 迭代，解析include包含的配置文件 */
     ParseConfigFile(sc, p, file_name);
 
     free(file_name);
@@ -6103,7 +6135,7 @@ static void ParseConfigFile(SnortConfig *sc, SnortPolicy *p, char *fname)
             DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,
                                     "[*] Processing keyword: %s\n", index););
 
-            /* 利用空格或\t做为分隔符，获取字符token，Get the keyword and args */
+            /* 利用空格或\t做为分隔符，获取字符token，一分为二 */
             toks = mSplit(index, " \t", 2, &num_toks, 0);
             if (num_toks != 2)
                 ParseError("Invalid configuration line: %s", index);
@@ -9355,7 +9387,7 @@ void ConfigBufferDump(SnortConfig *sc, char *args)
 #endif
 
 /****************************************************************************
- *
+ * 单条具体规则解析的入口函数
  * Function: ParseRule()
  *
  * Purpose:  Process an individual rule and add it to the rule list
@@ -9363,7 +9395,7 @@ void ConfigBufferDump(SnortConfig *sc, char *args)
  * Arguments: rule => rule string
  *
  * Returns: void function
- *
+ * 
  ***************************************************************************/
 static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
                       RuleType rule_type, ListHead *list)
@@ -9403,9 +9435,10 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
 
         DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES, "Preprocessor Rule detected\n"););
     }
+    /* 解析规则头，即五元组 */
     else
     {
-        /* proto ip port dir ip port r*/
+        /* 分隔结果：proto ip port dir ip port r */
         toks = mSplit(args, " \t", 7, &num_toks, '\\');
 
         /* A rule might not have rule options */
@@ -9414,18 +9447,18 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
             ParseError("Bad rule in rules file: %s", args);
         }
 
-        if (num_toks == 7)
+        if (num_toks == 7)           /* 最后一个为option部分 */
             roptions = toks[6];
 
-        test_rtn.type = rule_type;
+        test_rtn.type = rule_type;   /* 规则类型 */
 
         DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES, "Non-Preprocessor Rule detected\n"););
 
         /* Set the rule protocol - fatal errors if protocol not found */
         protocol = GetRuleProtocol(toks[0]);
-        test_rtn.proto = protocol;
+        test_rtn.proto = protocol;   /* 协议类型 */
 
-        switch (protocol)
+        switch (protocol)            /* 记录已配置规则的IP协议，已加速匹配流程 */
         {
             case IPPROTO_TCP:
                 sc->ip_proto_array[IPPROTO_TCP] = 1;
@@ -9451,7 +9484,7 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
          * applied instead of checking the flag if we see a "!<ip number>" we
          * need to set a flag so that we can properly deal with it when we are
          * processing packets. */
-        ProcessIP(sc, toks[1], &test_rtn, SRC, 0);
+        ProcessIP(sc, toks[1], &test_rtn, SRC, 0);    /* 解析源IP */
 
         /* Check to make sure that the user entered port numbers.
          * Sometimes they forget/don't know that ICMP rules need them */
@@ -9465,7 +9498,7 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
 
         if (ParsePortList(&test_rtn, portVarTable, nonamePortVarTable,
                           toks[2], protocol, 0 /* =src port */ ))
-        {
+        {                                             /* 解析源端口 */
             ParseError("Bad source port: '%s'", toks[2]);
         }
 
@@ -9480,7 +9513,7 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
 
         /* New in version 1.3: support for bidirectional rules
          * This checks the rule "direction" token and sets the bidirectional
-         * flag if the token = '<>' */
+         * flag if the token = '<>' */                /* 解析流方向 */
         if (strcmp(toks[3], RULE_DIR_OPT__BIDIRECTIONAL) == 0)
         {
             DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,"Bidirectional rule!\n"););
@@ -9492,13 +9525,13 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
          * applied instead of checking the flag
          * If we see a "!<ip number>" we need to set a flag so that we can
          * properly deal with it when we are processing packets */
-        ProcessIP(sc, toks[4], &test_rtn, DST, 0);
+        ProcessIP(sc, toks[4], &test_rtn, DST, 0);    /* 解析目的IP */
 
         DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,"Dst-Port: %s\n", toks[5]););
 
         if (ParsePortList(&test_rtn, portVarTable, nonamePortVarTable,
                           toks[5], protocol, 1 /* =dst port */ ))
-        {
+        {                                             /* 解析目的端口 */
             ParseError("Bad destination port: '%s'", toks[5]);
         }
     }
@@ -9506,8 +9539,10 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
     DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,"test_rtn.flags = 0x%X\n", test_rtn.flags););
     DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,"Processing Head Node....\n"););
 
+    /* 指向SnortConfig->Alert链 */
     test_rtn.listhead = list;
 
+    /* 处理规则头 */
     rtn = ProcessHeadNode(sc, &test_rtn, list);
     /* The IPs in the test node get free'd in ProcessHeadNode if there is
      * already a matching RTN.  The portobjects will get free'd when the
@@ -9515,6 +9550,7 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
 
     DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,"Parsing Rule Options...\n"););
 
+    /* 解析选项部分 */
     otn = ParseRuleOptions(sc, rtn, roptions, rule_type, protocol);
     if (otn == NULL)
     {
@@ -9577,6 +9613,7 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
     pe.proto = protocol;
     pe.rule_type = rule_type;
 
+    /* 规则信息摘要汇总，什么作用？？？ */
     port_list_add_entry(&port_list, &pe);
 
     /*
@@ -9584,7 +9621,7 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
      * compare the ports/port_objects to find the right rtn list to add the otn rule to.
      *
      * After otn processing we can finalize port object processing for this rule
-     */
+     *//* 以端口分类组织规则，使得报文不必匹配所有规则，仅匹配归属的端口类，提升性能  */
     if (FinishPortListRule(sc->port_tables, rtn, otn, protocol, &pe, sc->fast_pattern_config))
         ParseError("Failed to finish a port list rule.");
 
@@ -9608,6 +9645,7 @@ static void ParseRule(SnortConfig *sc, SnortPolicy *p, char *args,
 static RuleTreeNode * ProcessHeadNode(SnortConfig *sc, RuleTreeNode *test_node,
                                       ListHead *list)
 {
+    /* 查找是否有相同的规则头节点，已经插入到解析结果中 */
     RuleTreeNode *rtn = findHeadNode(sc, test_node, getParserPolicy(sc));
 
     /* if it doesn't match any of the existing nodes, make a new node and
@@ -9620,24 +9658,24 @@ static RuleTreeNode * ProcessHeadNode(SnortConfig *sc, RuleTreeNode *test_node,
 
         rtn->otnRefCount++;
 
-        /* copy the prototype header info into the new header block */
-        XferHeader(test_node, rtn);
+        /* 复制，copy the prototype header info into the new header block */
+        XferHeader(test_node, rtn);     /* 深度copy */
 
-        head_count++;
+        head_count++;                   /* 增加全局统计 */
         rtn->head_node_number = head_count;
 
-        /* initialize the function list for the new RTN */
+        /* 添加流匹配函数，initialize the function list for the new RTN */
         SetupRTNFuncList(rtn);
 
         /* add link to parent listhead */
-        rtn->listhead = list;
+        rtn->listhead = list;           /* 指向上一级链表 */
 
         DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES,
                 "New Chain head flags = 0x%X\n", rtn->flags););
     }
     else
     {
-        rtn->otnRefCount++;
+        rtn->otnRefCount++;             /* 增加引用计数 */
         FreeRuleTreeNode(test_node);
     }
 
@@ -9687,6 +9725,8 @@ static void ParseActivate(SnortConfig *sc, SnortPolicy *p, char *args)
     ParseRule(sc, p, args, RULE_TYPE__ACTIVATE, &sc->Activation);
 }
 
+/* alert规则的解析入口，如
+   alert tcp any any -> 192.168.1.0/24 111 (content:"|00 01 86 a5|"; msg:"mountd access";) */
 static void ParseAlert(SnortConfig *sc, SnortPolicy *p, char *args)
 {
     DEBUG_WRAP(DebugMessage(DEBUG_CONFIGRULES, "Alert\n"););
@@ -9740,6 +9780,7 @@ static void ParseSdrop(SnortConfig *sc, SnortPolicy *p, char *args)
         ParseRule(sc, p, args, RULE_TYPE__SDROP, &sc->SDrop);
 }
 
+/* "portvar"指令处理函数 */
 static void ParsePortVar(SnortConfig *sc, SnortPolicy *p, char *args)
 {
     char **toks;
@@ -9754,7 +9795,7 @@ static void ParsePortVar(SnortConfig *sc, SnortPolicy *p, char *args)
     }
 
     /* Check command line variables to see if this has already
-     * been defined */
+     * been defined *//* 命令行定义优先 */
     if (cmd_line_var_list != NULL)
     {
         VarNode *tmp = cmd_line_var_list;
@@ -9771,7 +9812,7 @@ static void ParsePortVar(SnortConfig *sc, SnortPolicy *p, char *args)
             tmp = tmp->next;
         }
     }
-
+    /* 记录到解析结果 */
     PortVarDefine(sc, toks[0], toks[1]);
 
     mSplitFree(&toks, num_toks);
@@ -12460,7 +12501,7 @@ static OptTreeNode * nextHeadNode(SnortConfig *sc, int proto,
 }
 
 /**returns matched header node.
-*/
+ *//* 查找匹配当前条件的规则头节点 */
 static RuleTreeNode * findHeadNode(SnortConfig *sc, RuleTreeNode *testNode,
                                    tSfPolicyId policyId)
 {

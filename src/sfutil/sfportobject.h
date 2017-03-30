@@ -65,7 +65,7 @@ typedef SFGHASH  PortVarTable;
  * port, lowport:highport, portlist
  */
 typedef struct _PortObjectItem_s {
-    int type;           /* 端口类型，ANY, RANGE, PORT */
+    int type;           /* 端口类型，PORT_OBJECT_ANY/RANGE/PORT */
     int flags;          /* NOT */
     
     uint16_t hport;     /* hi port */
@@ -93,10 +93,10 @@ typedef struct { /* not used yet */
 
 /* 端口对象 */
 typedef struct { 
-	char           * name;      /* user name - always use strdup or malloc for this*/
+	char           * name;      /* 端口名，user name - always use strdup or malloc for this*/
 	int              id;        /* internal tracking - compiling sets this value */
-    SF_LIST        * item_list; /* list of port and port-range items */
-    SF_LIST        * rule_list; /* list of rules  */
+    SF_LIST        * item_list; /* 端口对象列表，list of port and port-range items */
+    SF_LIST        * rule_list; /* 规则索引列表，list of rules  */
     void           * data;      /* user data, PORT_GROUP based on rule_list - only used by any-any ports */
     void           (*data_free)(void *);
 }PortObject;
@@ -160,9 +160,11 @@ typedef struct _PortTable_s {
 
 }PortTable;
 
-/* 端口管理结构 */
+/* 端口管理结构，各规则加入到以端口表；这样以端口索引规则，避免所有的数据包
+   过所有规则，达到进一步加速的目的 */
 typedef struct {
 
+    /* 各协议规则 */
     PortTable * tcp_src, * tcp_dst;
     PortTable * udp_src, * udp_dst;
     PortTable * icmp_src,* icmp_dst;
@@ -174,16 +176,18 @@ typedef struct {
     PortTable * ns_icmp_src,* ns_icmp_dst;
     PortTable * ns_ip_src,  * ns_ip_dst;
 #endif
-    
+
+    /* anyany端口规则 */
     PortObject * tcp_anyany;
     PortObject * udp_anyany;
     PortObject * icmp_anyany;
     PortObject * ip_anyany;
-    
-    PortObject * tcp_nocontent; 
-    PortObject * udp_nocontent; 
-    PortObject * icmp_nocontent; 
-    PortObject * ip_nocontent; 
+
+    /* 无内容规则 */
+    PortObject * tcp_nocontent;
+    PortObject * udp_nocontent;
+    PortObject * icmp_nocontent;
+    PortObject * ip_nocontent;
 
 }rule_port_tables_t;
 

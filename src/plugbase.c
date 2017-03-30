@@ -791,7 +791,7 @@ void *GetReloadStreamConfig(SnortConfig *sc)
 
 PreprocConfigFuncNode * GetPreprocConfig(char *keyword)
 {
-    PreprocConfigFuncNode *head = preproc_config_funcs;
+    PreprocConfigFuncNode *head = preproc_config_funcspreproc_config_funcs;
 
     if (keyword == NULL)
         return NULL;
@@ -929,6 +929,7 @@ int IsPreprocEnabled(SnortConfig *sc, uint32_t preproc_id)
     return 0;
 }
 
+/* 添加预处理函数 */
 PreprocEvalFuncNode * AddFuncToPreprocList(SnortConfig *sc, PreprocEvalFunc pp_eval_func, uint16_t priority,
                                            uint32_t preproc_id, uint32_t proto_mask)
 {
@@ -992,13 +993,14 @@ PreprocEvalFuncNode * AddFuncToPreprocList(SnortConfig *sc, PreprocEvalFunc pp_e
             last->next = node;
         }
     }
-
+    /* 初始化 */
     node->func = pp_eval_func;
     node->priority = priority;
     node->preproc_id = preproc_id;
     node->preproc_bit = (UINT64_C(1) << preproc_id);
     node->proto_mask = proto_mask;
 
+    /* 全局标识，加速 */
     p->num_preprocs++;
     p->preproc_proto_mask |= proto_mask;
     p->preproc_bit_mask |= node->preproc_bit;
@@ -1784,6 +1786,7 @@ void DumpOutputPlugins(void)
     LogMessage("-------------------------------------------------\n\n");
 }
 
+/* 添加日志输出函数 */
 void AddFuncToOutputList(SnortConfig *sc, OutputFunc o_func, OutputType type, void *arg)
 {
     switch (type)
@@ -1791,7 +1794,7 @@ void AddFuncToOutputList(SnortConfig *sc, OutputFunc o_func, OutputType type, vo
         case OUTPUT_TYPE__ALERT:
             if (sc->head_tmp != NULL)
                 AppendOutputFuncList(o_func, arg, &sc->head_tmp->AlertList);
-            else
+            else    /* 加入全局变量(alert函数指针列表) */
                 AppendOutputFuncList(o_func, arg, &AlertList);
 
             break;
