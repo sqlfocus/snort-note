@@ -2135,9 +2135,10 @@ static int fpCreateInitRuleMap (
 }
 /*
  * Create and initialize the rule maps
- */
+ *//* 以协议为第一层索引划归前期编译的新对象 */
 static int fpCreateRuleMaps(SnortConfig *sc, rule_port_tables_t *p)
 {
+    /* TCP端口对应的规则 */
     sc->prmTcpRTNX = prmNewMap();
     if (sc->prmTcpRTNX == NULL)
         return 1;
@@ -2145,6 +2146,7 @@ static int fpCreateRuleMaps(SnortConfig *sc, rule_port_tables_t *p)
     if (fpCreateInitRuleMap(sc->prmTcpRTNX, p->tcp_src, p->tcp_dst, p->tcp_anyany, p->tcp_nocontent, p->ns_tcp_src, p->ns_tcp_dst ))
         return -1;
 
+    /* UDP端口对应的规则 */
     sc->prmUdpRTNX = prmNewMap();
     if (sc->prmUdpRTNX == NULL)
         return -1;
@@ -2152,6 +2154,7 @@ static int fpCreateRuleMaps(SnortConfig *sc, rule_port_tables_t *p)
     if (fpCreateInitRuleMap(sc->prmUdpRTNX, p->udp_src, p->udp_dst, p->udp_anyany, p->udp_nocontent, p->ns_udp_src, p->ns_udp_dst))
         return -1;
 
+    /* IP端口对应的规则 */
     sc->prmIpRTNX = prmNewMap();
     if (sc->prmIpRTNX == NULL)
         return 1;
@@ -2159,6 +2162,7 @@ static int fpCreateRuleMaps(SnortConfig *sc, rule_port_tables_t *p)
     if (fpCreateInitRuleMap(sc->prmIpRTNX, p->ip_src, p->ip_dst, p->ip_anyany, p->ip_nocontent, p->ns_ip_src, p->ns_ip_dst))
         return -1;
 
+    /* ICMP端口对应的规则 */
     sc->prmIcmpRTNX = prmNewMap();
     if (sc->prmIcmpRTNX == NULL)
         return 1;
@@ -2458,7 +2462,6 @@ static int fpCreatePortObject2PortGroup(SnortConfig *sc, PortObject2 *po, PortOb
 
     /* create a port_group */
     pg = (PORT_GROUP *)SnortAlloc(sizeof(PORT_GROUP));
-
     if (fpAllocPms(sc, pg, fp) != 0)
     {
         free(pg);
@@ -2593,7 +2596,7 @@ static int fpCreatePortTablePortGroups(SnortConfig *sc, PortTable *p, PortObject
  *
  *  note: any-any ports are standard PortObjects not PortObject2's so we have to
  *  uprade them for the create port group function
- */
+ *//* 依照merge后的对象，初始化多模引擎 */
 static int fpCreatePortGroups(SnortConfig *sc, rule_port_tables_t *p)
 {
     PortObject2 *po2, *add_any_any = NULL;
@@ -3295,8 +3298,8 @@ static int fpCreateServicePortGroups(SnortConfig *sc)
 *
 *  Build Pattern Groups for 1st pass of content searching using
 *  multi-pattern search method.
-*//* 构建快速匹配检测引擎；基于端口对象的规则组织形式变更为基于端口的规则组
-     织形式，匹配更快速 */
+*//* 构建快速匹配检测引擎；进一步变更为基于数字端口的规则组织形式，
+     使得查找更快速 */
 int fpCreateFastPacketDetection(SnortConfig *sc)
 {
     rule_port_tables_t *port_tables;
@@ -3322,16 +3325,18 @@ int fpCreateFastPacketDetection(SnortConfig *sc)
     if (fpDetectGetDebugPrintRuleGroupBuildDetails(fp))
         LogMessage("Creating Port Groups....\n");
 
+    /* 多模引擎初始化 */
     if (fpCreatePortGroups(sc, port_tables))
         FatalError("Could not create PortGroup objects for PortObjects\n");
 
     if (fpDetectGetDebugPrintRuleGroupBuildDetails(fp))
         LogMessage("Port Groups Done....\n");
 
-    /* Create rule_maps */
     if (fpDetectGetDebugPrintRuleGroupBuildDetails(fp))
         LogMessage("Creating Rule Maps....\n");
 
+    /* 使得merge后的新对象可索引(存放在全局配置中)，Create rule_maps */
+    /* merge后的以端口数为代表的对象，划归到可索引的数组 */
     if (fpCreateRuleMaps(sc, port_tables))
         FatalError("Could not create rule maps\n");
 

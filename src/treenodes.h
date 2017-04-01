@@ -59,7 +59,8 @@ typedef struct _OptTreeNode
        it allows the plugin authors to associate "dynamic" data structures
        with the rule system, letting them link anything they can come up 
        with to the rules list */
-    void *ds_list[PLUGIN_MAX];   /* 插件数据指针，如content模式匹配数据PatternMatchData，list of plugin data struct pointers */
+    void *ds_list[PLUGIN_MAX];   /* 插件数据指针，如content模式匹配数据PatternMatchData, 
+                                    索引类型PLUGIN_PATTERN_MATCH，list of plugin data struct pointers */
 
     int chain_node_number;       /* 分配顺序计数？ */
 

@@ -912,7 +912,7 @@ typedef struct _SnortConfig
      * rules, or any combination. We process the uricontent 1st,
      * then the content, and then the no content rules for udp/tcp
      * and icmp, than we process the ip rules. */
-    /* 快速规则引擎：以源、目的端口聚类 */
+    /* 快速规则引擎：以源、目的端口聚类; PORT_RULE_MAP->PORT_GROUP->RULE_NODE->RULE_PTR(OptTreeNode) */
     PORT_RULE_MAP *prmIpRTNX;
     PORT_RULE_MAP *prmTcpRTNX;
     PORT_RULE_MAP *prmUdpRTNX;
@@ -924,7 +924,7 @@ typedef struct _SnortConfig
     sopg_table_t *sopgTable;   /* service-oridnal to port_group table */
 #endif
 
-    SFXHASH *detection_option_hash_table; /* */
+    SFXHASH *detection_option_hash_table; /* 规则选项匹配内容组成的表，PatternMatchData */
     SFXHASH *detection_option_tree_hash_table;
 
     tSfPolicyConfig *policy_config;       /* 配置文件信息 */

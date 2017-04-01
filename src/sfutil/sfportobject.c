@@ -1081,7 +1081,7 @@ int PortObjectPortCount (PortObject * po )
  *  Build a PortMap Char Array
  *  returns:  0 if an  ANY port.
  *            n number of unique ports.
- */
+ *//* 遍历新类型对象，计算其对应的端口列表，并返回包含的有效端口数 */
 char * PortObjectCharPortArray ( char * parray, PortObject * po, int * nports )
 {
      int cnt = 0;
@@ -1312,7 +1312,7 @@ int PortObjectRemovePorts( PortObject * a,  PortObject * b )
  *   The reduces multiple references to a given port to a single unique reference
  *   This function should be used on each PortObject, once it's completed. After
  *   the normalized PortObject is created, the input PortObject may be deleted.
- */
+ *//* 主要目的，去掉not逻辑端口，仅剩余正常逻辑的端口 */
 int  PortObjectNormalize (PortObject * po )
 {
      SF_LIST * plist;
@@ -1327,17 +1327,16 @@ int  PortObjectNormalize (PortObject * po )
 
      memset(parray,0,SFPO_MAX_PORTS);
 
-     /* Create a char array of ports */
+     /* 获取对象对应的有效端口列表；Create a char array of ports */
      PortObjectCharPortArray ( parray, po, &nports );
 
-     /* Convert the array into a Port Object list */
+     /* 由有效端口列表，构造端口对象列表；Convert the array into a Port Object list */
      plist = PortObjectItemListFromCharPortArray( parray, SFPO_MAX_PORTS );
      if( !plist )
          return -1;
 
-     /* Release the old port list */
+     /* 重新赋值，Release the old port list */
      sflist_free_all( po->item_list, free );
-
      /* Replace the old PortObject list */
      po->item_list = plist;
 
@@ -1553,10 +1552,12 @@ PortObject * PortObjectAppendEx(PortObject * poa, PortObject * pob )
 PortObject2 * PortObjectAppendEx2(PortObject2 * poa, PortObject * pob )
 {
    // LogMessage("PortObjectAppendEx: appending ports\n");
-   if( !PortObjectAppend((PortObject*) poa, pob ) ) return 0;
+    /* 复制对象 */
+    if( !PortObjectAppend((PortObject*) poa, pob ) ) return 0;
 
   //  LogMessage("PortObjectAppendEx: appending rules\n");
-   if( !PortObject2AppendPortObject( poa, pob ) ) return 0;
+    /* 复制规则 */
+    if( !PortObject2AppendPortObject( poa, pob ) ) return 0;
 
    return poa;
 }
@@ -1867,7 +1868,7 @@ PortObject2 * _merge_N_pol( SFGHASH * mhash, SFGHASH * mhashx,
 
     /*
     * Check for the merged port object in the plx table
-    */
+    *//* 查找是否merge过 */
     DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,
                             "++++n=%d sfghash_find-mhashx\n",pol_cnt););
     ponew = sfghash_find( mhashx, &plx );
@@ -1882,16 +1883,13 @@ PortObject2 * _merge_N_pol( SFGHASH * mhash, SFGHASH * mhashx,
 
     /*
     *  Merge the port objects together - ports and rules
-    */
-
-
+    *//* 创建新形式的对象，并把旧对象组都囊括进去 */
     /* Dup the 1st port objects rules and ports */
     ponew = PortObject2Dup( (PortObject *)pol[0] );
     if( !ponew )
     {
         FatalError("Could not Dup2\n");
     }
-
     /* Merge in all the other port object rules and ports */
     if( pol_cnt > 1 )
     {
@@ -1904,6 +1902,7 @@ PortObject2 * _merge_N_pol( SFGHASH * mhash, SFGHASH * mhashx,
                    "*** merged port-object[%d], %d rules\n",
                    i,ponew->rule_hash->count););
         }
+        /* 重新构建端口对象，去掉not逻辑 */
         PortObjectNormalize( (PortObject*)ponew );
     }
 
@@ -1916,7 +1915,7 @@ PortObject2 * _merge_N_pol( SFGHASH * mhash, SFGHASH * mhashx,
     /*
     * Add the Merged PortObject2 to the PortObject2 hash table
     * keyed by ports.
-    */
+    *//* 加入端口hash表 */
     DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,"n=%d sfghash_add-mhash\n",pol_cnt););
     stat =sfghash_add( mhash, &ponew, ponew );
     if( stat != SFGHASH_OK )
@@ -1951,14 +1950,13 @@ PortObject2 * _merge_N_pol( SFGHASH * mhash, SFGHASH * mhashx,
     /*
     * Create a plx node and add it to plx table
     * as the key with the merged port object as the data
-    */
+    *//* 构建plx_t对象，并加入对应的列表和hash表 */
     plx_tmp = plx_new( pol, pol_cnt);
     if(!plx_tmp)
     {
         FatalError("plx_new: memory alloc error\n");
     }
     sflist_add_head(plx_list, (void *)plx_tmp);
-
     /*
      * Add the plx node to the PLX hash table
      */
@@ -2002,7 +2000,7 @@ PortObject2 * _merge_N_pol( SFGHASH * mhash, SFGHASH * mhashx,
  * pol_cnt - number of port objects in port list
  * lcnt    - large rule count
  *
- */
+ *//* 构建新端口对象，merge所有老的端口对象 */
 static
 PortObject2 * PortTableCompileMergePortObjectList2(SFGHASH   * mhash,
                                                   SFGHASH    * mhashx,
@@ -2024,7 +2022,7 @@ PortObject2 * PortTableCompileMergePortObjectList2(SFGHASH   * mhash,
 
     /*
     * Find the largest rule count of all of the port objects
-    */
+    *//* 查找拥有最多规则的端口对象 */
     largest = 0;
     for(i=0;i<pol_cnt;i++)
     {
@@ -2038,7 +2036,7 @@ PortObject2 * PortTableCompileMergePortObjectList2(SFGHASH   * mhash,
     /*
     * Classify PortObjects as large or small based on rule set size
     * and copy them into separate lists
-    */
+    *//* 依照规则多少，将端口对象分为两组，大规则组、小规则组 */
     for(i=0;i<pol_cnt;i++)
     {
       if( pol[i]->rule_list->count >= (unsigned)lcnt )
@@ -2058,7 +2056,7 @@ PortObject2 * PortTableCompileMergePortObjectList2(SFGHASH   * mhash,
     /*
     * Sort the pointers to the input port objects so
     * we always get them in the same order for key comparisons
-    */
+    *//* 以端口对象地址排序大、小规则组，以便于以相同的顺序访问，提高cache命中？？？ */
     if( nlarge > 1 )
         qsort( polarge, nlarge, sizeof(void*), p_keycmp );
     if( nsmall > 1 )
@@ -2071,7 +2069,7 @@ PortObject2 * PortTableCompileMergePortObjectList2(SFGHASH   * mhash,
 
     /*
     * Setup plx_t representation of port list pointers
-    */
+    *//* 为分隔的大规则组、小规则组，创建plx_t对象 */
     plx_small.n = nsmall;
     plx_small.p = (void**)&posmall[0];
 
@@ -2091,7 +2089,7 @@ PortObject2 * PortTableCompileMergePortObjectList2(SFGHASH   * mhash,
 
     /*
     * Merge Large PortObjects
-    */
+    *//* 合并大规则组为单独的PortObjects2对象 */
     if( nlarge )
     {
         DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,"***nlarge=%d \n",nlarge););
@@ -2100,7 +2098,7 @@ PortObject2 * PortTableCompileMergePortObjectList2(SFGHASH   * mhash,
 
     /*
     * Merge Small PortObjects
-    */
+    *//* 合并小规则组为单独的PortObjects2对象 */
     if( nsmall )
     {
         DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,"***nsmall=%d \n",nsmall););
@@ -2110,7 +2108,7 @@ PortObject2 * PortTableCompileMergePortObjectList2(SFGHASH   * mhash,
     * Merge Large and Small (rule groups) PortObject2's together
     * append small port object rule sets to the large port objects,
     * remove the large port objects ports from the smaller port objects
-    */
+    *//* 新小规则组对象合并到大规则组对象，仅合并规则 */
     if( nlarge && nsmall )
     {
         DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,"*** appending small rules to larger rule group\n"););
@@ -2164,49 +2162,44 @@ int PortTableCompileMergePortObjects( PortTable * p )
 
     DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,"***\n***Merging PortObjects->PortObjects2\n***\n"););
 
-    /* Create a Merged Port Object Table  - hash by ports */
+    /* 创建hash表，以端口做hash；Create a Merged Port Object Table  - hash by ports */
     mhash = sfghash_new(PO_HASH_TBL_ROWS, sizeof(PortObject *), 0 /*userkeys-no*/, 0 /*free data-don't*/);
     if( !mhash )
         return -1;
-
     /* Setup hashing function and key comparison function */
     sfhashfcn_set_keyops( mhash->sfhashfcn, PortObject_hash, PortObject_keycmp );
-
     /* remove randomness */
     if (ScStaticHash())
         sfhashfcn_static( mhash->sfhashfcn );
-
     p->pt_mpo_hash = mhash;
 
-    /* Create a Merged Port Object Table  - hash by ports */
+    /* 创建hash表，以plx_t做hash；Create a Merged Port Object Table  - hash by ports */
     mhashx = sfghash_new(PO_HASH_TBL_ROWS, sizeof(plx_t *), 0/*userkeys-no*/, 0/*freedata()-don't*/);
     if( !mhashx )
         return -1;
     /* Setup hashing function and key comparison function */
     sfhashfcn_set_keyops( mhashx->sfhashfcn,plx_hash,plx_keycmp );
-
     /* remove randomness */
     if (ScStaticHash())
         sfhashfcn_static( mhashx->sfhashfcn );
-
     p->pt_mpxo_hash = mhashx;
 
     DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,"***\n*** PortList-Merging, Large Rule groups must have %d rules\n",p->pt_lrc););
 
+    /* 创建plx_t对象列表 */
     plx_list = sflist_new();
     sflist_init(plx_list);
-
     p->pt_plx_list = plx_list;
 
     /*
      *  For each port, merge rules from all port objects that touch the port
      *  into an optimal object, that may be shared with other ports.
-     */
+     *//* 遍历所有可能的端口，merge到新建的hash表、链表 */
     for(i=0;i<SFPO_MAX_PORTS;i++)
     {
         PortObject * po;
 
-        /* Build a list of port objects touching port 'i' */
+        /* 提取包含特定端口的，所有端口对象；Build a list of port objects touching port 'i' */
         pol_cnt = 0;
         for(po=sflist_firstpos(p->pt_polist,&lpos);
             po;
@@ -2230,7 +2223,7 @@ int PortTableCompileMergePortObjects( PortTable * p )
 
         DEBUG_WRAP(DebugMessage(DEBUG_PORTLISTS,"*** merging list for port[%d] \n",i);fflush(stdout););
 
-        /* merge the rules into an optimal port object */
+        /* 合并规则到特定的端口对象；merge the rules into an optimal port object */
         p->pt_port_object[i] =
             PortTableCompileMergePortObjectList2( mhash, mhashx, plx_list, pol, pol_cnt, p->pt_lrc );
         if( !p->pt_port_object[i] )
@@ -2247,8 +2240,7 @@ int PortTableCompileMergePortObjects( PortTable * p )
     /*
      * Normalize the Ports so they indicate only the ports that
      * reference the composite port object
-     */
-
+     *//* 构建bit内存，以掩码新对象包含的端口 */
     /* 1st- Setup bitmasks for collecting ports */
     for(node=sfghash_findfirst(mhashx);
         node;
@@ -2280,7 +2272,7 @@ int PortTableCompileMergePortObjects( PortTable * p )
         }
     }
 
-    /* Count how many ports each final port-object is used on */
+    /* Count how many ports each final port-object is used on；掩码包含的端口 */
     for(i=0;i<SFPO_MAX_PORTS;i++)
     {
         PortObject2 * poa;
@@ -2530,7 +2522,8 @@ int PortTableConsistencyCheck( PortTable *p )
 * set of objects to indicate which rules to apply to which ports. Since
 * these groups are calculated consistency checking is done witht he finished
 * objects.
-*/
+*//* 这是一个难懂的函数呵，优化！！！ 
+     最终每个端口建立一个复合对象，包含所有此端口的老对象，及它们对应的规则 */
 int PortTableCompile( PortTable * p )
 {
     /*
@@ -2591,7 +2584,7 @@ int * RuleListToSortedArray( SF_LIST * rl )
     return ra;
 }
 /**sort and uniq rule list.
- */
+ *//* 按照规则ID排序，并去重复 */
 void RuleListSortUniq(
         SF_LIST * rl
         )
@@ -2604,12 +2597,14 @@ void RuleListSortUniq(
     int *node = 0;
     int * rlist = NULL;
 
+    /* 端口下挂的规则按照ID排序(即配置顺序) */
     rlist = RuleListToSortedArray(rl);
     if(!rlist )
     {
         return ;
     }
 
+    /* 去除重复的规则ID */
     currNode = sflist_firstpos(rl,&pos);
     if (currNode == NULL)
         return;
@@ -2637,7 +2632,7 @@ void RuleListSortUniq(
 
 /**Sort and make rule index in all port objects unique. Multiple policies may add
  * the same rule which can lead to duplication.
- */
+ *//* 以端口对象为单位，重排其规则列表，并去重 */
 void PortTableSortUniqRules(
         PortTable * p
         )

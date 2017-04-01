@@ -3287,7 +3287,7 @@ OptTreeNode * ParseRuleOptions(SnortConfig *sc, RuleTreeNode *rtn,
         otn_handler(sc, otn);
     }
 
-    /* */
+    /* 去重；确保匹配内容的解析结果没有重复项 */
     FinalizeContentUniqueness(sc, otn);
     ValidateFastPattern(otn);
 
@@ -5980,7 +5980,7 @@ void ParseRules(SnortConfig *sc)
     IntegrityCheckRules(sc);
     /*FindMaxSegSize();*/
 
-    /* Compile/Finish and Print the PortList Tables */
+    /* 编译端口表，Compile/Finish and Print the PortList Tables */
     PortTablesFinish(sc->port_tables, sc->fast_pattern_config);
 
     LogMessage("+-------------------[Rule Port Counts]---------------------------------------\n");
@@ -11503,6 +11503,7 @@ static void port_list_free( port_list_t * plist)
 /* Finish processing/setup Port Tables */
 static void finish_portlist_table(FastPatternConfig *fp, char *s, PortTable *pt)
 {
+    /* 以配置顺序重排端口对象的规则列表，并去重 */
     PortTableSortUniqRules(pt);
 
     if( fpDetectGetDebugPrintRuleGroupsUnCompiled(fp) )
@@ -11511,6 +11512,7 @@ static void finish_portlist_table(FastPatternConfig *fp, char *s, PortTable *pt)
         PortTablePrintInputEx( pt, rule_index_map_print_index );
     }
 
+    /* 编译，以单个数字端口对应的对象，重新组织；merge所有包含此端口的老对象 */
     PortTableCompile( pt );
 
     if( fpDetectGetDebugPrintRuleGroupsCompiled(fp) )
@@ -11690,6 +11692,7 @@ static rule_port_tables_t * PortTablesNew(void)
     return rpt;
 }
 
+/* 为加速，以端口为单位，重新组织旧对象及规则 */
 static void PortTablesFinish(rule_port_tables_t *port_tables, FastPatternConfig *fp)
 {
     /* TCP-SRC */

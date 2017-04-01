@@ -1359,7 +1359,7 @@ int PatternMatchCompare(void *l, void *r)
 }
 
 /* This function is called in parser.c after the rule has been
- * completely parsed */
+ * completely parsed *//* 确认内容匹配没有内容重复的项，省内存？？？ */
 void FinalizeContentUniqueness(struct _SnortConfig *sc, OptTreeNode *otn)
 {
     OptFpList *opt_fp = otn->opt_func;
@@ -1380,6 +1380,7 @@ void FinalizeContentUniqueness(struct _SnortConfig *sc, OptTreeNode *otn)
             else
                 ValidateContent(sc, pmd, PLUGIN_PATTERN_MATCH);
 
+            /* 匹配内容(PatternMatchData)加入查找hash表 */
             if (add_detection_option(sc, option_type, (void *)pmd, &pmd_dup) == DETECTION_OPTION_EQUAL)
             {
                  /* Don't do anything if they are the same pointer.  This might happen when

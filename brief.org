@@ -114,7 +114,9 @@ snort采用插件方式组织报文解码、规则引擎、日志输出；既抽
            -PayloadSearchInit()          "content"关键字解析，~/src/detection-plugins/sp_pattern_match.c
              -ParsePattern()                解析匹配串
              -AddOptFuncToList()            添加匹配函数CheckANDPatternMatch()，到OptTreeNode->opt_func
+                                               类型RULE_OPTION_TYPE_CONTENT
          -FinishPortListRule()           以端口对象组织规则，使得报文仅匹配对应端口的规则集，提升性能
+   -PortTablesFinish()                   编译端口表，以端口为单位重新组织所有包含此端口的对象
  -Detect()
    -fpEvalPacket()                     过规则，~/src/fpdetect.c
      -fpEvalHeaderTcp()
@@ -122,6 +124,12 @@ snort采用插件方式组织报文解码、规则引擎、日志输出；既抽
        -fpEvalHeaderSW()                 规则
        -fpFinalSelectEvent()             触发事件告警
  #+END_EXAMPLE
+
+** IP重组,frag3
+ab
+
+** TCP流重组,stream5
+ab
 
 * 参考
  - 手册：~/doc/snort_manual.pdf

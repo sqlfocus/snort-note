@@ -91,7 +91,7 @@ typedef struct { /* not used yet */
     SF_LIST        * item_list; /* list of port and port-range items */
 }PortList_x;
 
-/* 端口对象 */
+/* 端口对象，对应原始的配置文件；可能为端口或端口范围，并且包含对应的规则 */
 typedef struct { 
 	char           * name;      /* 端口名，user name - always use strdup or malloc for this*/
 	int              id;        /* internal tracking - compiling sets this value */
@@ -101,30 +101,31 @@ typedef struct {
     void           (*data_free)(void *);
 }PortObject;
 
+/* 为加速，编译后的端口对象，仅对应单个端口；一般囊括多个端口对象(包含此端口的) */
 typedef struct  {
-	char           * name;      /* user name - always use strdup or malloc for this*/
-	int              id;        /* internal tracking - compiling sets this value */
-    SF_LIST        * item_list; /* list of port and port-range items */
-    SFGHASH        * rule_hash; /* hash of rule (rule-indexes) in use */
-    int              port_cnt;  /* count of ports using this object */
-    BITOP          * bitop;     /* for collecting ports that use this object */
+	char           * name;      /* 名称，user name - always use strdup or malloc for this*/
+	int              id;        /* 创建顺序ID，internal tracking - compiling sets this value */
+    SF_LIST        * item_list; /* 包含的旧对象，list of port and port-range items */
+    SFGHASH        * rule_hash; /* 包含的规则，hash of rule (rule-indexes) in use */
+    int              port_cnt;  /* 使用此对象的端口，应该为1？？？count of ports using this object */
+    BITOP          * bitop;     /* 端口bit掩码，for collecting ports that use this object */
     void           * data;      /* user data, PORT_GROUP based on rule_hash  */
     void           (*data_free)(void *);
 }PortObject2;
 
-/* 端口表
+/* 端口组表
  * Port Table */
 typedef struct _PortTable_s {
 
     /* turns on group optimization, better speed-but more memory 
      * otherwise a single merged rule group is used.
-     */
+     *//* 速度优化开关，空间换时间 */
     int pt_optimize;
 
     /* save the users input port objects in this list 
      * rules may be added after creation of a port object
      * but the ports are not modified.
-     */
+     *//* 优化前，端口对象列表，每个对象挂接对应的规则 */
     SF_LIST * pt_polist;
     int       pt_poid;
 
@@ -135,18 +136,18 @@ typedef struct _PortTable_s {
     */
     SF_LIST * pt_port_lists[SFPO_MAX_PORTS];
 
-    /* Compiled / merged port object hash table */
-    SFGHASH * pt_mpo_hash;
-    SFGHASH * pt_mpxo_hash;
-
-    SF_LIST * pt_plx_list;
+    /* 为加速，配合pt_optimize开关，重新组织现有端口、规则；
+       Compiled / merged port object hash table */
+    SFGHASH * pt_mpo_hash;      /* 新端口对象hash */
+    SFGHASH * pt_mpxo_hash;     /* plx_t对象hash */
+    SF_LIST * pt_plx_list;      /* plx_t对象列表 */
 
     /*  a single rule list with all rules merged together */
     SF_LIST * pt_merged_rule_list; 
 
     /* 
     * Final Port/Rule Groupings, one port object per port, or null
-    */
+    *//* 为加速，新对象数组，新对象对应某个端口，merge所有包含此端口的老对象 */
     PortObject2 * pt_port_object[SFPO_MAX_PORTS];
         
     int pt_lrc; /* large rule count, this many rules is a large group */
@@ -163,7 +164,7 @@ typedef struct _PortTable_s {
 /* 端口管理结构，各规则加入到以端口表；这样以端口索引规则，避免所有的数据包
    过所有规则，达到进一步加速的目的 */
 typedef struct {
-
+/*** 以端口组group为单位组织规则 ***/
     /* 各协议规则 */
     PortTable * tcp_src, * tcp_dst;
     PortTable * udp_src, * udp_dst;
@@ -177,6 +178,7 @@ typedef struct {
     PortTable * ns_ip_src,  * ns_ip_dst;
 #endif
 
+/*** 以端口对象为单位组织规则 ***/    
     /* anyany端口规则 */
     PortObject * tcp_anyany;
     PortObject * udp_anyany;

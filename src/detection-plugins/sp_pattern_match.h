@@ -69,7 +69,7 @@ typedef struct _PatternMatchData
     char *replace_buf;      /* app layer pattern to replace with */
     char *pattern_buf;      /* 正则字符串，app layer pattern to match on */
     int (*search)(const char *, int, struct _PatternMatchData *);  /* search function */
-                            /* 查找函数 */
+                            /* 查找函数, 如content关键字对应uniSearch() */
     int *skip_stride; /* B-M skip array */
     int *shift_stride; /* B-M shift array */
     u_int pattern_max_jump_size; /* Maximum distance we can jump to search for
