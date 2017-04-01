@@ -117,6 +117,9 @@ snort采用插件方式组织报文解码、规则引擎、日志输出；既抽
                                                类型RULE_OPTION_TYPE_CONTENT
          -FinishPortListRule()           以端口对象组织规则，使得报文仅匹配对应端口的规则集，提升性能
    -PortTablesFinish()                   编译端口表，以端口为单位重新组织所有包含此端口的对象
+ -fpCreateFastPacketDetection()        构建快速匹配检测引擎(规则以协议＋端口分组)
+   -fpCreatePortGroups()                 构建多模匹配引擎
+   -fpCreateRuleMaps()                   映射端口对应的匹配结构
  -Detect()
    -fpEvalPacket()                     过规则，~/src/fpdetect.c
      -fpEvalHeaderTcp()
